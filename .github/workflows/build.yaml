@@ -51,12 +51,12 @@ jobs:
           cd app
           pnpm install
 
-    - name: 🌍 Download GeoLite2 database
-      run: |
-        mkdir -p configs
-        curl -L https://cdn.jsdelivr.net/npm/geolite2-city/GeoLite2-City.mmdb.gz -o GeoLite2-City.mmdb.gz
-        gunzip -f GeoLite2-City.mmdb.gz
-        mv GeoLite2-City.mmdb configs/GeoLite2-City.mmdb
+      - name: 🌍 Download GeoLite2 database
+        run: |
+          mkdir -p configs
+          curl -L https://cdn.jsdelivr.net/npm/geolite2-city/GeoLite2-City.mmdb.gz -o GeoLite2-City.mmdb.gz
+          gunzip -f GeoLite2-City.mmdb.gz
+          mv GeoLite2-City.mmdb configs/GeoLite2-City.mmdb
 
       - name: 🔨 Build Go binary
         env:
