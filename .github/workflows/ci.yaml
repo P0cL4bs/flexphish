@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - GOOS: linux
+            GOARCH: amd64
+            RUNNER: ubuntu-latest
+
+    runs-on: ${{ matrix.RUNNER }}
+    env:
+      CGO_ENABLED: 1
+      PROJECT_NAME: flexphish
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 📦 Install system dependencies (make + 7zip)
+        run: apt-get update && apt-get install -y p7zip-full build-essential
+
+      - name: 🧰 Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+
+      - name: 🧱 Setup Node + pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: 📦 Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: ⬆️ Install compatible pnpm version
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.8.0 --activate
+
+      - name: 📂 Install frontend dependencies
+        run: |
+          cd app
+          pnpm install
+
+      - name: 🔨 Build Go binary
+        env:
+          GOOS: ${{ matrix.GOOS }}
+          GOARCH: ${{ matrix.GOARCH }}
+        run: |
+          make all
