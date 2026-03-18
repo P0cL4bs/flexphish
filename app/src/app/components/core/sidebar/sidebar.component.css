@@ -1,0 +1,5 @@
+.menu li>.menu-active {
+    background-color: var(--color-primary);
+    /* ex: Tailwind blue-500 */
+    color: white;
+}

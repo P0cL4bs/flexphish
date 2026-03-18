@@ -1,0 +1,33 @@
+<div class="toast toast-top toast-end z-50">
+  <div *ngFor="let toast of toastService.toasts" class="alert alert-soft flex items-start gap-2" [ngClass]="{
+      'alert-success': toast.type === 'success',
+      'alert-error': toast.type === 'error',
+      'alert-info': toast.type === 'info',
+      'alert-warning': toast.type === 'warning'
+    }">
+
+    <ng-container [ngSwitch]="toast.type">
+      <svg *ngSwitchCase="'success'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current"
+        fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <svg *ngSwitchCase="'error'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current"
+        fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+      <svg *ngSwitchCase="'info'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none"
+        viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <svg *ngSwitchCase="'warning'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current"
+        fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.054 0 1.502-1.272.894-2.018L13.894 4.982c-.54-.677-1.75-.677-2.288 0L3.172 16.982c-.608.746-.16 2.018.894 2.018z" />
+      </svg>
+    </ng-container>
+
+    <span>{{ toast.text }}</span>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+campaign:
+    base_domain: localhost:8001
+    subdomain_mode: true
+security:
+    jwt_secret: ""
+    test_mode_token: ""
+server:
+    api_port: 8088
+    campaign_port: 8001
+    dashboard_port: 8000
+    host: 0.0.0.0
+session:
+    cookie_domain: ""
+    cookie_http_only: true
+    cookie_name: fp_session
+    cookie_secure: false
+    ttl: 24h
+template_assets_dir: templates/assets
+template_dir: templates

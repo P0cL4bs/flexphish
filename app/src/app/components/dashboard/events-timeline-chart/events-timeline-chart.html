@@ -1,0 +1,44 @@
+<div class="card bg-base-100 border border-base-300 shadow-sm h-full">
+
+    <div class="card-body">
+
+        <div class="flex items-center justify-between mb-2">
+
+            <h2 class="card-title text-base">
+                Events Timeline
+            </h2>
+
+            <ul class="menu menu-horizontal bg-base-200 rounded-box p-1 text-sm">
+
+                <li>
+                    <a [class.menu-active]="period === 'day'" (click)="changePeriod('day')">
+                        Day
+                    </a>
+                </li>
+
+                <li>
+                    <a [class.menu-active]="period === 'week'" (click)="changePeriod('week')">
+                        Week
+                    </a>
+                </li>
+                <li>
+                    <a [class.menu-active]="period === 'month'" (click)="changePeriod('month')">
+                        Month
+                    </a>
+                </li>
+
+                <li>
+                    <a [class.menu-active]="period === 'year'" (click)="changePeriod('year')">
+                        Year
+                    </a>
+                </li>
+
+            </ul>
+
+        </div>
+
+        <div #chart></div>
+
+    </div>
+
+</div>

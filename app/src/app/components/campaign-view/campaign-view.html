@@ -1,0 +1,391 @@
+<div class="">
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Campaigns</h1>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
+
+        <input type="text" placeholder="Search by name..." [(ngModel)]="search" (input)="applyFilters()"
+            class="input input-bordered w-full md:w-80" />
+
+        <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="select select-bordered w-full md:w-52">
+
+            <option value="">All Status</option>
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="stopped">Stopped</option>
+            <option value="completed">Completed</option>
+        </select>
+
+        <button class="btn btn-primary" (click)="openCreateDialog()">
+            + New Campaign
+        </button>
+
+    </div>
+
+    <!-- Loading -->
+
+    <div class="w-full">
+
+        <!-- GLOBAL LOADING -->
+        <div *ngIf="loading" class="text-center py-10">
+            <span class="loading loading-spinner loading-lg"></span>
+        </div>
+
+        <!-- TABLE -->
+        <div *ngIf="!loading"
+            class="mt-2 mb-10 w-full overflow-x-auto overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+
+            <table class="table table-zebra w-full ">
+
+                <thead>
+                    <tr class="border-b-0">
+                        <th class="bg-base-300 rounded-s-box lg:py-2 w-12"></th>
+                        <th class="bg-base-300 lg:py-2">Name</th>
+                        <th class="bg-base-300 lg:py-2 whitespace-nowrap">Subdomain</th>
+                        <th class="bg-base-300 lg:py-2">Status</th>
+                        <th class="bg-base-300 lg:py-2">Template</th>
+                        <th class="bg-base-300 lg:py-2">Template Tags</th>
+                        <th class="bg-base-300 lg:py-2">Launched At</th>
+                        <th class="bg-base-300 lg:py-2">Total Creds</th>
+                        <th class="bg-base-300 lg:py-2">Total Opens</th>
+                        <th class="bg-base-300 lg:py-2">Total Events</th>
+                        <th class="bg-base-300 rounded-e-box lg:py-2">Last captured</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <ng-container *ngFor="let c of filteredCampaigns">
+
+                        <!-- MAIN ROW -->
+                        <tr class="cursor-pointer hover:bg-base-200 transition-colors"
+                            [routerLink]="['/campaigns', c.id]">
+
+                            <!-- EXPAND BUTTON -->
+                            <td (click)="toggleRow(c, $event)" class="font-bold">
+
+                                <lucide-icon *ngIf="expandedRow !== c.id" name="chevron-right">
+                                </lucide-icon>
+
+                                <lucide-icon *ngIf="expandedRow === c.id" name="chevron-down">
+                                </lucide-icon>
+
+                            </td>
+
+                            <td class="font-semibold">
+                                {{ c.name }}
+                            </td>
+
+                            <td class="whitespace-nowrap">
+                                <a class="inline-flex items-center gap-1 font-bold hover:underline" target="_blank"
+                                    (click)="$event.stopPropagation()"
+                                    [href]="'http://' + c.subdomain + '.' + config.campaign.base_domain + '?test_mode_token=' + config.security.test_mode_token">
+                                    <span class="badge badge-soft badge-secondary badge-sm">
+                                        {{ c.subdomain }}
+                                    </span>
+                                    <span class="opacity-70">
+                                        .{{ config.campaign.base_domain }}
+                                    </span>
+                                </a>
+                            </td>
+
+                            <td>
+
+                                <span class="badge badge-soft font-bold" [ngClass]="{
+                                    'badge-success': c.status === 'active',
+                                    'badge-ghost': c.status === 'draft',
+                                    'badge-warning': c.status === 'stopped',
+                                    'badge-info': c.status === 'completed'
+                                }">
+                                    <div aria-label="status" class="status" [ngClass]="{
+                                    'status-success': c.status === 'active',
+                                    'status-ghost': c.status === 'draft',
+                                    'status-warning': c.status === 'stopped',
+                                    'status-info': c.status === 'completed'
+                                }"></div>
+                                    {{ c.status }}
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <ng-container *ngIf="getTemplateById(c.template_id) as templ; else loading">
+                                    <span
+                                        class="pr-2 mr-2 font-bold badge badge-soft badge-accent">{{c.template_id}}</span>
+                                    <span class="badge badge-outline badge-secondary badge-sm">
+                                        {{ templ.info.category }}
+                                    </span>
+
+                                </ng-container>
+
+                                <ng-template #loading>
+                                    <span class="opacity-40 text-xs">
+                                        loading...
+                                    </span>
+                                </ng-template>
+
+                            </td>
+
+                            <td>
+
+                                <ng-container *ngIf="getTemplateById(c.template_id) as templ">
+
+                                    <span *ngFor="let tag of templ.info.tags || []"
+                                        class="mr-1 badge badge-sm badge-outline badge-primary">
+
+                                        {{ tag }}
+
+                                    </span>
+
+                                </ng-container>
+
+                            </td>
+
+                            <td>
+                                {{ c.launch_date | date:'dd/MM/yyyy HH:mm' }}
+                            </td>
+
+                            <td>
+                                <span class="font-bold text-primary">{{ getTotalResults(c) }}</span>
+                            </td>
+
+                            <td>
+                                <span class="font-bold text-info">{{ getTotalOpened(c) }}</span>
+                            </td>
+
+                            <td>
+                                <span class="font-bold text-accent">{{ c.total_submitted }}</span>
+                            </td>
+
+                            <td>
+                                <span *ngIf="getLastCapture(c) as last; else noCapture">
+                                    {{ last | date:'dd/MM/yyyy HH:mm' }}
+                                </span>
+
+                                <ng-template #noCapture>
+                                    <span class="opacity-40">—</span>
+                                </ng-template>
+                            </td>
+
+                        </tr>
+
+                        <!-- EXPANDED DETAILS -->
+                        <tr *ngIf="expandedRow === c.id" class="mb-2 ">
+                            <td colspan="12" class="bg-base-200 p-6 w-full"> <!-- LOADING DETAILS -->
+                                <div *ngIf="loadingDetail === c.id" class="text-center py-6"> <span
+                                        class="loading loading-spinner loading-lg"></span> </div>
+                                <!-- DETAILS CONTENT -->
+                                <div *ngIf="campaignDetails[c.id] as detail"> <!-- HEADER -->
+                                    <div class="flex justify-between items-center mb-6 ">
+                                        <div>
+                                            <h2 class="text-xl font-bold flex gap-3 items-center"> {{ detail.name }}
+                                                <span class="badge badge-soft"
+                                                    [ngClass]="{ 'badge-success': detail.status === 'active', 'badge-ghost': detail.status === 'draft', 'badge-warning': detail.status === 'stopped', 'badge-info': detail.status === 'completed' }">
+                                                    {{ detail.status }} </span>
+                                            </h2>
+                                            <p class="opacity-70 text-sm mt-1"> Template: {{ detail.template_id }} </p>
+                                        </div> <!-- ACTIONS -->
+                                        <div class="flex gap-2"> <button class="btn btn-sm btn-outline"
+                                                [routerLink]="['/campaigns', detail.id]"> Open </button> <button
+                                                class="btn btn-sm btn-warning" *ngIf="detail.status === 'active'"> Pause
+                                            </button> <button class="btn btn-sm btn-success"
+                                                *ngIf="detail.status === 'draft'"> Launch </button> </div>
+                                    </div> <!-- STATS -->
+                                    <div class="stats shadow w-full bg-base-100 mb-6 border border-base-300">
+                                        <div class="stat">
+                                            <div class="stat-figure text-primary text-2xl"> <lucide-icon
+                                                    name="key"></lucide-icon> </div>
+                                            <div class="stat-title"> Credentials </div>
+                                            <div class="stat-value text-primary"> {{ detail.total_submitted }} </div>
+                                            <div class="stat-desc"> Captured credentials </div>
+                                        </div>
+                                        <div class="stat">
+                                            <div class="stat-figure text-warning text-2xl"> <lucide-icon
+                                                    name="flame"></lucide-icon> </div>
+                                            <div class="stat-title"> Clicks </div>
+                                            <div class="stat-value text-warning"> {{ detail.total_clicked }} </div>
+                                            <div class="stat-desc"> Link interactions </div>
+                                        </div>
+                                        <div class="stat">
+                                            <div class="stat-figure text-info text-2xl"> 👁 </div>
+                                            <div class="stat-title"> Opens </div>
+                                            <div class="stat-value text-info"> {{ detail.total_opened }} </div>
+                                            <div class="stat-desc"> Tracked opens </div>
+                                        </div>
+                                        <div class="stat">
+                                            <div class="stat-figure text-success text-2xl"> <lucide-icon
+                                                    name="chart-no-axes-combined"></lucide-icon> </div>
+                                            <div class="stat-title"> Conversion </div>
+                                            <div class="stat-value text-success"> {{ getConversionRate(detail) }}%
+                                            </div>
+                                            <div class="stat-desc"> Submissions / Clicks </div>
+                                        </div>
+                                    </div> <!-- EXTRA INFO -->
+                                    <div class="grid md:grid-cols-3 gap-4">
+                                        <div class="card bg-base-100 border border-base-300">
+                                            <div class="card-body">
+                                                <h3 class="font-bold text-lg"> Launch Info </h3>
+                                                <p> Launch Date: <strong> {{ detail.launch_date | date:'dd/MM/yyyy
+                                                        HH:mm' }} </strong> </p>
+                                                <p> Last Capture: <span
+                                                        *ngIf="getLastCapture(c) as last; else noCapture">
+                                                        {{ last | date:'dd/MM/yyyy HH:mm' }}
+                                                    </span>
+
+                                                    <ng-template #noCapture>
+                                                        <span class="opacity-40">—</span>
+                                                    </ng-template>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="card bg-base-100 border border-base-300">
+                                            <div class="card-body">
+                                                <h3 class="font-bold text-lg"> Domain </h3>
+                                                <p> <a target="_blank" class="link link-primary"
+                                                        [href]="'https://' + detail.subdomain + '.localhost:8001'"> {{
+                                                        detail.subdomain }}.localhost:8001 </a> </p>
+                                            </div>
+                                        </div>
+                                        <div class="card bg-base-100 border border-base-300">
+                                            <div class="card-body">
+                                                <h3 class="font-bold text-lg"> Template </h3>
+                                                <p> {{ detail.template_id }} </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                    </ng-container>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- Pagination -->
+    <div class="flex justify-center mt-10">
+
+        <div class="join">
+
+            <button class="join-item btn" (click)="prevPage()" [disabled]="page === 1">
+                «
+            </button>
+
+            <button class="join-item btn btn-active">
+                Page {{ page }}
+            </button>
+
+            <button class="join-item btn" (click)="nextPage()" [disabled]="page * pageSize >= total">
+                »
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<dialog id="create_campaign_modal" class="modal">
+
+    <div class="modal-box max-w-lg">
+
+        <h3 class="font-bold text-lg mb-4">
+            Create New Campaign
+        </h3>
+
+        <div class="space-y-4">
+
+            <!-- Name -->
+            <div>
+                <label class="label">
+                    <span class="label-text">Campaign Name</span>
+                </label>
+                <input type="text" [(ngModel)]="newCampaign.name" class="input input-bordered w-full" />
+            </div>
+
+            <!-- Template -->
+            <div>
+                <label class="label">
+                    <span class="label-text">Template</span>
+                </label>
+                <select class="select select-bordered w-full" [(ngModel)]="newCampaign.template_id"
+                    [disabled]="loadingTemplates">
+
+                    <option value="" disabled>
+                        {{ loadingTemplates ? 'Loading templates...' : 'Select a template' }}
+                    </option>
+
+                    <option *ngFor="let t of templates" [ngValue]="t.filename">
+                        {{ t.name || t.filename }}
+                    </option>
+
+                </select>
+            </div>
+
+            <!-- Subdomain -->
+            <div>
+                <label class="label">
+                    <span class="label-text">Subdomain</span>
+                </label>
+                <input type="text" [(ngModel)]="newCampaign.subdomain" class="input input-bordered w-full" />
+            </div>
+            <!-- Dev Mode -->
+            <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
+                <legend class="fieldset-legend">Development Mode</legend>
+
+                <label class="label cursor-pointer gap-3">
+                    <input type="checkbox" class="checkbox checkbox-warning" [(ngModel)]="newCampaign.dev_mode" />
+
+                    <span class="label-text">
+                        Enable campaign development mode
+                    </span>
+                </label>
+
+                <p class="text-xs opacity-70 mt-1">
+                    Development mode allows modifying the campaign template even while the campaign is active.
+                    This is useful for testing and adjusting phishing pages during development.
+                </p>
+            </fieldset>
+
+            <!-- Error -->
+            <div *ngIf="errorMessage" class="alert alert-error text-sm">
+                {{ errorMessage }}
+            </div>
+
+        </div>
+
+        <div class="modal-action">
+
+            <button class="btn" (click)="closeCreateDialog()" [disabled]="creating">
+                Cancel
+            </button>
+
+            <button class="btn btn-primary" (click)="createCampaign()" [disabled]="creating">
+
+                <span *ngIf="!creating">Create</span>
+
+                <span *ngIf="creating" class="loading loading-spinner loading-sm">
+                </span>
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+
+</dialog>

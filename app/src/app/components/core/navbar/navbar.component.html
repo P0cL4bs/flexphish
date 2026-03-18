@@ -1,0 +1,24 @@
+<header class="navbar mb-0 border-b border-base-300">
+  <div class="navbar-start flex items-center space-x-3">
+    <button class="btn btn-sm btn-ghost" aria-label="Toggle Sidebar" (click)="toggleSidebar()">
+      <lucide-icon [name]="sidebarService.isHide() ? 'square-chevron-left' : 'square-chevron-right'" class="w-5 h-5">
+      </lucide-icon>
+    </button>
+    <div class="flex flex-col leading-tight">
+      <div class="flex items-center space-x-1">
+        <h1 class="text-primary sm:text-4xl md:text-xl font-bold text-lg select-none">Flexphish</h1>
+        <span class="text-secondary font-semibold select-none">UI</span>
+      </div>
+      <span class="text-xs text-base-content/60 select-none"><strong>v{{ env.version }}</strong> </span>
+    </div>
+  </div>
+  <div class="navbar-end m-2">
+    <div class="tooltip tooltip-left" *ngIf="!isVisibleCommandBar" data-tip="Show command bar"
+      (click)="toggleCommandBar()">
+      <button class="btn btn-soft btn-sm p-2">
+        <lucide-icon size="16" name="panel-top-open"></lucide-icon>
+      </button>
+    </div>
+    <a class="btn"><lucide-icon name="log-out" (click)="logout()"></lucide-icon></a>
+  </div>
+</header>

@@ -1,0 +1,112 @@
+<dialog #createTemplateDialog class="modal">
+
+    <div class="modal-box max-w-3xl">
+
+        <h3 class="font-bold text-lg mb-4">
+            Create Template
+        </h3>
+
+        <div class="flex flex-col gap-4">
+
+            <!-- filename -->
+
+            <div>
+
+                <label class="label">
+                    <span class="label-text">Filename</span>
+                </label>
+
+                <input type="text" class="input input-bordered w-full" placeholder="example-template.yaml"
+                    [(ngModel)]="filename" />
+
+            </div>
+
+            <!-- YAML editor -->
+
+            <div>
+
+                <label class="label">
+                    <span class="label-text">YAML Content</span>
+                </label>
+
+                <code-editor class="textarea h-64 w-full  text-sm mt-2" [extensions]="[language_yaml]" [theme]="'dark'"
+                    [(ngModel)]="content">
+                </code-editor>
+
+            </div>
+
+            <!-- HTML files -->
+
+            <div>
+
+                <label class="label">
+                    <span class="label-text">HTML Files</span>
+                </label>
+
+                <input type="file" accept=".html" multiple class="file-input w-full" (change)="onHtmlFiles($event)" />
+
+                <div class="mt-2 space-y-1">
+
+                    <div *ngFor="let file of htmlFiles" class="flex justify-between bg-base-200 p-2 rounded text-sm">
+
+                        <span>{{ file.name }}</span>
+
+                        <span class="opacity-60">
+                            {{ file.size | humanizeBytes }} bytes
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Static files -->
+
+            <div>
+
+                <label class="label">
+                    <span class="label-text">Static Files</span>
+                </label>
+
+                <input type="file" multiple class="file-input  w-full" (change)="onStaticFiles($event)" />
+
+                <div class="mt-2 space-y-1">
+
+                    <div *ngFor="let file of staticFiles" class="flex justify-between bg-base-200 p-2 rounded text-sm">
+
+                        <span>{{ file.name }}</span>
+
+                        <span class="opacity-60">
+                            {{ file.size | humanizeBytes}} bytes
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ACTIONS -->
+
+        <div class="modal-action">
+
+            <button class="btn" (click)="closeModal()">
+
+                Cancel
+
+            </button>
+
+            <button class="btn btn-primary" [class.loading]="loading" (click)="createTemplate()">
+
+                Create Template
+
+            </button>
+
+        </div>
+
+    </div>
+
+</dialog>

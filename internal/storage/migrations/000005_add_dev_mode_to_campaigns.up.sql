@@ -1,0 +1,2 @@
+ALTER TABLE campaigns
+ADD COLUMN dev_mode BOOLEAN NOT NULL DEFAULT False;

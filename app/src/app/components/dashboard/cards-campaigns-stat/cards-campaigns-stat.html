@@ -1,0 +1,98 @@
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+
+    <!-- TOTAL CAMPAIGNS -->
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body p-5">
+
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-sm opacity-70">Total Campaigns</p>
+                    <h2 class="text-2xl font-bold">
+                        {{ analytics?.total_campaigns || 0 }}
+                    </h2>
+                    <p class="text-xs opacity-60 mt-1">
+                        campaigns created
+                    </p>
+                </div>
+
+                <div class="p-2 rounded-lg bg-base-200">
+                    <lucide-icon name="megaphone" size="18"></lucide-icon>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- ACTIVE CAMPAIGNS -->
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body p-5">
+
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-sm opacity-70">Active Campaigns</p>
+                    <h2 class="text-2xl font-bold">
+                        {{ analytics?.active_campaigns || 0 }}
+                    </h2>
+                    <p class="text-xs opacity-60 mt-1">
+                        currently running
+                    </p>
+                </div>
+
+                <div class="p-2 rounded-lg bg-base-200">
+                    <lucide-icon name="activity" size="18"></lucide-icon>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- EVENTS -->
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body p-5">
+
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-sm opacity-70">Events Captured</p>
+                    <h2 class="text-2xl font-bold">
+                        {{ analytics?.events_captured || 0 }}
+                    </h2>
+                    <p class="text-xs opacity-60 mt-1">
+                        interactions recorded
+                    </p>
+                </div>
+
+                <div class="p-2 rounded-lg bg-base-200">
+                    <lucide-icon name="mouse-pointer-click" size="18"></lucide-icon>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- RESULTS -->
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body p-5">
+
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-sm opacity-70">Credentials Captured</p>
+                    <h2 class="text-2xl font-bold">
+                        {{ analytics?.credentials_captured || 0 }}
+                    </h2>
+                    <p class="text-xs opacity-60 mt-1">
+                        successful captures
+                    </p>
+                </div>
+
+                <div class="p-2 rounded-lg bg-base-200">
+                    <lucide-icon name="key-round" size="18"></lucide-icon>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>

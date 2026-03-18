@@ -1,0 +1,335 @@
+<div *ngIf="loading" class="flex justify-center items-center p-10">
+    <span class="loading loading-spinner loading-lg"></span>
+</div>
+
+<div *ngIf="!loading && template">
+
+    <!-- HEADER -->
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-secondary">
+                {{ templateMetadata?.filename }} <span *ngIf="template.info.system"
+                    class="badge badge-warning badge-soft gap-1">
+                    <lucide-icon name="shield-check" size="16"></lucide-icon>
+                    System
+                </span>
+            </h1>
+
+            <p class="text-sm opacity-70">
+                {{ template.info.description }}
+            </p>
+        </div>
+    </div>
+
+    <!-- METADATA CARD -->
+    <div class="card bg-base-100 border border-base-300 shadow-sm mb-4 ">
+        <div class="card-body text-sm">
+
+            <div class="grid md:grid-cols-2 gap-4">
+
+                <div>
+                    <p class="text-xs opacity-60 uppercase">Author</p>
+                    <p class="font-medium">{{ template.info.author }}</p>
+                </div>
+
+                <div>
+                    <p class="text-xs opacity-60 uppercase">Category</p>
+                    <span class="badge badge-outline badge-secondary">
+                        {{ template.info.category }}
+                    </span>
+                </div>
+
+                <div>
+                    <p class="text-xs opacity-60 uppercase">Template Directory</p>
+                    <p class="font-mono text-xs">{{ template.template_dir }}</p>
+                </div>
+
+                <div>
+                    <p class="text-xs opacity-60 uppercase">Tags</p>
+
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        <span class="badge badge-outline badge-accent" *ngFor="let tag of template.info.tags">
+                            {{ tag }}
+                        </span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    <!-- YAML EDITOR -->
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body p-4">
+
+            <div class="flex items-center justify-between mb-1">
+
+                <h2 class="card-title text-base">
+                    Template YAML
+                </h2>
+
+                <ul class="menu bg-base-200 lg:menu-horizontal rounded-box">
+
+                    <li>
+                        <a (click)="saveTemplate()">
+                            <lucide-icon size="16" name="save"></lucide-icon>
+                            Save
+                        </a>
+                    </li>
+
+                    <li>
+                        <a (click)="openDeleteModal()" class="text-error">
+                            <lucide-icon size="16" name="trash-2"></lucide-icon>
+                            Delete
+                        </a>
+                    </li>
+
+                </ul>
+
+            </div>
+
+            <div class="bg-base-200 p-3 rounded">
+
+                <div *ngIf="templateMetadata">
+                    <code-editor [extensions]="[language_yaml]" [theme]="'dark'" [(ngModel)]="templateMetadata.content">
+                    </code-editor>
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+    <!-- HTML FILES -->
+    <div class="card bg-base-100 shadow-md mt-6 border border-base-300">
+
+        <div class="card-body">
+
+            <!-- HEADER -->
+            <div class="flex items-center justify-between mb-4">
+
+                <h2 class="card-title text-base">
+                    HTML Files
+                </h2>
+
+                <label class="btn btn-sm btn-primary">
+                    Upload
+                    <input type="file" class="hidden" multiple (change)="onFileUpload($event)" />
+                </label>
+
+            </div>
+
+
+            <!-- FILE LIST -->
+            <div *ngIf="htmlFiles.length; else noFiles" class="grid md:grid-cols-2 gap-4">
+
+                <div class="card bg-base-200 border border-base-300 hover:shadow-md transition cursor-pointer"
+                    *ngFor="let file of htmlFiles" (click)="onEditFile(file)">
+
+                    <div class="card-body p-4">
+
+                        <div class="flex justify-between items-start">
+
+                            <div class="space-y-1">
+
+                                <h3 class="font-semibold text-sm">
+                                    {{ file.filename }}
+                                </h3>
+
+                                <p class="text-xs opacity-70">
+                                    {{ (file.size / 1024) | number:'1.1-1' }} KB
+                                </p>
+
+                                <p class="text-xs opacity-70">
+                                    Modified: {{ file.mod_time | date:'short' }}
+                                </p>
+
+                                <p class="text-xs opacity-60 truncate max-w-[260px]">
+                                    {{ file.path }}
+                                </p>
+
+                            </div>
+
+                            <button class="btn btn-xs btn-soft btn-error"
+                                (click)="onDeleteFile(file); $event.stopPropagation()">
+                                Delete
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- EMPTY STATE -->
+            <ng-template #noFiles>
+
+                <div class="text-sm opacity-60">
+                    No HTML files found in this template.
+                </div>
+
+            </ng-template>
+
+
+            <!-- FILE EDITOR -->
+            <div *ngIf="editingFile" class="mt-6">
+
+                <div class="flex justify-between items-center mb-3">
+
+                    <h3 class="font-semibold text-sm">
+                        Editing: {{ editingFile.filename }}
+                    </h3>
+
+                    <button class="btn btn-xs btn-outline" (click)="editingFile = null">
+                        Close
+                    </button>
+
+                </div>
+
+                <div class="border border-base-300 rounded-lg overflow-hidden">
+
+                    <code-editor [extensions]="[language_html]" [theme]="'dark'" [(ngModel)]="editingFileContent">
+                    </code-editor>
+
+                </div>
+
+                <div class="flex justify-end gap-2 mt-3">
+
+                    <button class="btn btn-sm btn-outline" (click)="editingFile = null">
+                        Cancel
+                    </button>
+
+                    <button class="btn btn-sm btn-primary" [disabled]="!hasChanges()" (click)="saveEditedFile()">
+                        Save File
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- STATIC FILES -->
+    <div class="card bg-base-100 shadow-md mt-6 border border-base-300">
+
+        <div class="card-body">
+
+            <div class="flex items-center justify-between mb-4">
+
+                <h2 class="card-title text-base">
+                    Static Files
+                </h2>
+
+                <label class="btn btn-sm btn-primary">
+                    Upload
+                    <input type="file" class="hidden" multiple (change)="onStaticFileUpload($event)" />
+                </label>
+
+            </div>
+
+            <div *ngIf="staticFiles.length; else noStaticFiles" class="grid md:grid-cols-2 gap-4">
+
+                <div class="card bg-base-200 border border-base-300 hover:shadow-md transition cursor-pointer"
+                    *ngFor="let file of staticFiles" (click)="onEditStaticFile(file)">
+
+                    <div class="card-body p-4">
+
+                        <div class="flex justify-between items-start">
+
+                            <div class="space-y-1">
+
+                                <h3 class="font-semibold text-sm">
+                                    {{ file.filename }}
+                                </h3>
+
+                                <p class="text-xs opacity-70">
+                                    {{ (file.size / 1024) | number:'1.1-1' }} KB
+                                </p>
+
+                                <p class="text-xs opacity-70">
+                                    Modified: {{ file.mod_time | date:'short' }}
+                                </p>
+
+                                <p class="text-xs opacity-60 truncate max-w-[260px]">
+                                    {{ file.path }}
+                                </p>
+
+                            </div>
+
+                            <button class="btn btn-xs btn-soft btn-error"
+                                (click)="onDeleteStaticFile(file); $event.stopPropagation()">
+                                Delete
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+            <ng-template #noStaticFiles>
+                <div class="text-sm opacity-60">
+                    No static files found.
+                </div>
+            </ng-template>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div *ngIf="!loading && !template" class="p-6 opacity-60 text-sm">
+    Template not found.
+</div>
+
+
+<div class="modal" [class.modal-open]="showDeleteModal">
+
+    <div class="modal-box">
+
+        <h3 class="font-bold text-lg text-error">
+            Delete Template
+        </h3>
+
+        <p class="py-4">
+
+            Are you sure you want to delete
+
+            <span class="font-semibold">
+                {{ templateMetadata?.filename }}
+            </span> ?
+
+            This action cannot be undone.
+
+        </p>
+
+        <div class="modal-action">
+
+            <button class="btn" (click)="closeDeleteModal()">
+
+                Cancel
+
+            </button>
+
+            <button class="btn btn-error" (click)="confirmDelete()">
+
+                Delete Template
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>

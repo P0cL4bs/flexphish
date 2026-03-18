@@ -1,0 +1,14 @@
+ui/
+
+build/*
+
+bin/*
+
+**/node_modules/
+
+app/node_modules/
+
+configs/GeoLite2-City.mmdb
+
+
+flexphish.db

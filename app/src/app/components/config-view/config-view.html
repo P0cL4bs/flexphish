@@ -1,0 +1,140 @@
+<div class="p-6 max-w-4xl mx-auto">
+
+    <h1 class="text-2xl font-bold mb-6">
+        Configurations
+    </h1>
+
+    <div *ngIf="loading" class="text-center">
+        Loading configs...
+    </div>
+
+    <div *ngIf="!loading && config">
+
+        <!-- SERVER -->
+        <div class="card bg-base-100 mb-6 border border-base-300 ">
+            <div class="card-body">
+
+                <h2 class="card-title">Server</h2>
+
+                <label class="label">
+                    <span class="label-text">Host</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" [(ngModel)]="config.server.host">
+
+                <label class="label">
+                    <span class="label-text">Dashboard Port</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" type="number"
+                    [(ngModel)]="config.server.dashboard_port">
+
+                <label class="label">
+                    <span class="label-text">API Port</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" type="number" [(ngModel)]="config.server.api_port">
+
+                <label class="label">
+                    <span class="label-text">Campaign Port</span>
+                </label>
+                <input class="input input-bordered w-full" type="number" [(ngModel)]="config.server.campaign_port">
+
+            </div>
+        </div>
+
+        <!-- SESSION -->
+        <div class="card bg-base-100 mb-6 border border-base-300 ">
+            <div class="card-body">
+
+                <h2 class="card-title">Session</h2>
+
+                <label class="label">
+                    <span class="label-text">Cookie Name</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" [(ngModel)]="config.session.cookie_name">
+
+                <label class="label">
+                    <span class="label-text">Cookie Domain</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" [(ngModel)]="config.session.cookie_domain">
+
+                <label class="label">
+                    <span class="label-text">Session TTL</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" [(ngModel)]="config.session.ttl">
+
+                <label class="label cursor-pointer justify-between">
+                    <span class="label-text">Cookie Secure</span>
+                    <input type="checkbox" class="toggle toggle-secondary" [(ngModel)]="config.session.cookie_secure">
+                </label>
+
+                <label class="label cursor-pointer justify-between">
+                    <span class="label-text">HTTP Only</span>
+                    <input type="checkbox" class="toggle toggle-secondary"
+                        [(ngModel)]="config.session.cookie_http_only">
+                </label>
+
+            </div>
+        </div>
+
+        <!-- CAMPAIGN -->
+        <div class="card bg-base-100 mb-6 border border-base-300 ">
+            <div class="card-body">
+
+                <h2 class="card-title">Campaign</h2>
+
+                <label class="label">
+                    <span class="label-text">Base Domain</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" [(ngModel)]="config.campaign.base_domain">
+
+                <label class="label cursor-pointer justify-between">
+                    <span class="label-text">Enable Subdomain Mode</span>
+                    <input type="checkbox" class="toggle toggle-secondary" [(ngModel)]="
+                        config.campaign.subdomain_mode">
+                </label>
+
+            </div>
+        </div>
+
+        <!-- SECURITY -->
+        <div class="card bg-base-100 mb-6 border border-base-300 ">
+            <div class="card-body">
+
+                <h2 class="card-title">Security</h2>
+
+                <label class="label">
+                    <span class="label-text">Test Mode Token</span>
+                </label>
+                <input class="input input-bordered w-full" [(ngModel)]="config.security.test_mode_token">
+
+            </div>
+        </div>
+
+        <!-- TEMPLATE -->
+        <div class="card bg-base-100 mb-6 border border-base-300 ">
+            <div class="card-body">
+
+                <h2 class="card-title">Templates</h2>
+
+                <label class="label">
+                    <span class="label-text">Template Directory</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" [(ngModel)]="config.template_dir">
+
+                <label class="label">
+                    <span class="label-text">Template Assets Directory</span>
+                </label>
+                <input class="input input-bordered w-full" [(ngModel)]="config.template_assets_dir">
+
+            </div>
+        </div>
+
+        <!-- SAVE -->
+        <button class="btn btn-primary" (click)="save()" [disabled]="saving">
+
+            Save Configurations
+
+        </button>
+
+    </div>
+
+</div>

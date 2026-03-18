@@ -1,0 +1,175 @@
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-2xl font-bold">Templates</h2>
+
+    <button class="btn btn-secondary" (click)="openCreateTemplate()">
+        + New Template
+    </button>
+</div>
+
+
+
+<div class="bg-base-100 border-base-300">
+    <!-- FILTER TOOLBAR -->
+    <div class="bg-base-100 border border-base-300 rounded-box p-4">
+
+        <!-- TOP ROW -->
+        <div class="flex flex-wrap items-center gap-3 justify-between">
+
+            <!-- LEFT SIDE -->
+            <div class="flex flex-wrap items-center gap-3 flex-1">
+
+                <!-- SEARCH -->
+                <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+
+                    <lucide-icon name="search" size="18"></lucide-icon>
+
+                    <input type="text" class="grow" placeholder="Search templates..." [(ngModel)]="search"
+                        (input)="applyFilter()" />
+
+                </label>
+
+                <!-- SORT -->
+                <label class="flex items-center gap-2">
+
+                    <span class="text-sm opacity-70 whitespace-nowrap">
+                        Sort
+                    </span>
+
+                    <select class="select select-bordered" [(ngModel)]="sortBy" (change)="applyFilter()">
+                        <option value="name">Name</option>
+                        <option value="category">Category</option>
+                    </select>
+
+                </label>
+
+                <!-- COUNT -->
+
+
+                <!-- CATEGORY NAVIGATION -->
+                <div class="overflow-x-auto">
+
+                    <ul class="menu menu-horizontal bg-base-100 border border-base-300 rounded-box p-1">
+
+                        <!-- ALL -->
+                        <li>
+                            <a class="flex items-center gap-2" [class.menu-active]="selectedCategory === null"
+                                (click)="selectedCategory = null; applyFilter()">
+                                <lucide-icon name="layers" size="16"></lucide-icon>
+                                All
+                            </a>
+                        </li>
+
+                        <!-- CATEGORY LIST -->
+                        <li *ngFor="let cat of categories">
+                            <a class="flex items-center gap-2" [class.menu-active]="selectedCategory === cat"
+                                (click)="selectedCategory = cat; applyFilter()">
+                                <lucide-icon name="folder" size="16"></lucide-icon>
+                                {{ cat }}
+                            </a>
+                        </li>
+
+                    </ul>
+
+                </div>
+            </div>
+            <div class="flex items-center gap-2 whitespace-nowrap">
+                <span class="badge badge-accent rounded-full badge-soft p-2">
+
+                    <span
+                        class="badge badge-accent rounded-full w-6 h-6 p-2 flex items-center justify-center text-xs font-bold">
+                        {{ filteredTemplates.length }}
+                    </span>
+
+                    <span class="text-sm opacity-70 font-bold">
+                        templates
+                    </span>
+                </span>
+
+            </div>
+
+
+
+        </div>
+
+    </div>
+    <div class="bg-base-200 border-base-300 p-2">
+
+        <div class="hidden md:flex h-full">
+
+            <!-- SIDEBAR -->
+            <aside class="w-90 bg-base-200 m-2 mt-0 overflow-y-auto pl-0 ml-0">
+
+                <div class="flex flex-col gap-3 p-2 pl-0">
+
+                    <label *ngFor="let temp of filteredTemplates"
+                        class="card bg-base-100 border-base-300 cursor-pointer border-2 transition-all hover:shadow-md"
+                        [class.border-primary]="activeTemplate === temp.filename" (click)="selectTemplate(temp)">
+
+                        <div class="card-body p-4">
+
+                            <!-- Header -->
+                            <div class="flex items-start justify-between">
+
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" class="radio radio-xs radio-primary" name="template"
+                                        [checked]="activeTemplate === temp.filename" />
+
+                                    <span class="font-semibold">
+                                        {{ temp.filename }}
+                                    </span>
+                                </div>
+
+                                <!-- CATEGORY -->
+                                <span class="badge badge-outline badge-secondary">
+                                    {{ temp.category }}
+                                </span>
+
+                            </div>
+
+                            <!-- FOOTER -->
+                            <div class="flex items-center justify-between mt-3">
+
+                                <!-- TAGS (LEFT) -->
+                                <div class="flex flex-wrap gap-1">
+                                    <ng-container *ngFor="let tag of temp.tags">
+                                        <span class="badge badge-sm badge-outline badge-accent">
+                                            {{ tag }}
+                                        </span>
+                                    </ng-container>
+                                </div>
+
+                                <!-- RIGHT BADGES -->
+                                <div class="flex items-center gap-2">
+
+                                    <!-- SYSTEM -->
+                                    <span *ngIf="temp.info.system" class="badge badge-warning badge-soft gap-1">
+                                        <lucide-icon name="shield-check" size="16"></lucide-icon>
+                                        System
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </label>
+
+                </div>
+
+            </aside>
+
+            <div class="w-px bg-base-300"></div>
+
+            <main class="flex-1 overflow-auto pl-4 bg-base-200">
+
+                <router-outlet></router-outlet>
+
+            </main>
+
+        </div>
+
+    </div>
+</div>
+
+<app-template-create-view></app-template-create-view>

@@ -1,0 +1,306 @@
+/* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@plugin "daisyui" {
+  logs: false;
+  themes:
+    dark --default;
+}
+
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: oklch(25.33% 0.016 252.42);
+  --color-base-200: oklch(23.26% 0.014 253.1);
+  --color-base-300: oklch(30% 0.012 254.09);
+  --color-base-content: oklch(97.807% 0.029 256.847);
+  --color-primary: #7876AB;
+  --color-primary-content: oklch(0% 0 0);
+  --color-secondary: #CCEF5E;
+  --color-secondary-content: oklch(12% 0.042 264.695);
+  --color-accent: #FFA300;
+  --color-accent-content: oklch(0% 0 0);
+  --color-neutral: oklch(14% 0.005 285.823);
+  --color-neutral-content: oklch(92% 0.004 286.32);
+  --color-info: oklch(74% 0.16 232.661);
+  --color-info-content: oklch(29% 0.066 243.157);
+  --color-success: oklch(76% 0.177 163.223);
+  --color-success-content: oklch(37% 0.077 168.94);
+  --color-warning: oklch(82% 0.189 84.429);
+  --color-warning-content: oklch(41% 0.112 45.904);
+  --color-error: oklch(71% 0.194 13.428);
+  --color-error-content: oklch(27% 0.105 12.094);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: hsl(47.7 0% 5.8%);
+  --color-base-200: hsl(157.9 0% 4.7%);
+  --color-base-300: oklch(25.7% 0.012 254.090);
+  --color-base-content: oklch(97.807% 0.029 256.847);
+  --color-primary: #7876AB;
+  --color-primary-content: oklch(0% 0 0);
+  --color-secondary: #CCEF5E;
+  --color-secondary-content: oklch(12% 0.042 264.695);
+  --color-accent: #FFA300;
+  --color-accent-content: oklch(0% 0 0);
+  --color-neutral: oklch(27.8% 0.005 285.823);
+  --color-neutral-content: oklch(92% 0.004 286.32);
+  --color-info: oklch(74% 0.16 232.661);
+  --color-info-content: oklch(29% 0.066 243.157);
+  --color-success: oklch(76% 0.177 163.223);
+  --color-success-content: oklch(37% 0.077 168.94);
+  --color-warning: oklch(82% 0.189 84.429);
+  --color-warning-content: oklch(41% 0.112 45.904);
+  --color-error: oklch(71% 0.194 13.428);
+  --color-error-content: oklch(27% 0.105 12.094);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Poppins", serif;
+  --font-inter: "Inter", sans-serif;
+  --font-poppins: "Poppins", serif;
+  --btn: font-inter font-semibold uppercase;
+}
+
+@layer base {
+
+  input:focus,
+  select:focus,
+  textarea:focus,
+  .input:focus,
+  .select:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: none !important;
+    --tw-ring-color: transparent !important;
+  }
+
+  .input:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: none !important;
+    --tw-ring-color: transparent !important;
+    border-color: rgba(255, 255, 255, 0.2);
+    /* opcional */
+  }
+}
+
+@layer utilities {
+  .card:has(> :checked) {
+    outline: none !important;
+  }
+}
+
+
+.ng-select {
+  position: relative;
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+}
+
+
+.ng-select.ng-select-opened.ng-select-bottom>.ng-select-container {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.ng-select.ng-select-opened .ng-select-container {
+  z-index: 1001;
+}
+
+.ng-select.ng-select-opened>.ng-select-container {
+  background: #fff;
+  border-color: #fff;
+}
+
+.ng-select .ng-select-container {
+  cursor: default;
+  display: flex;
+  outline: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+
+.ng-select.ng-select-multiple .ng-select-container .ng-value-container .ng-value {
+  font-size: .9em;
+  margin-bottom: 5px;
+  background-color: var(--color-secondary);
+  color: var(--color-base-100);
+  margin-right: 5px;
+  border-radius: 4px;
+}
+
+.ng-select.ng-select-multiple .ng-select-container .ng-value-container .ng-value .ng-value-icon.left {
+  border-right: 1px solid var(--color-base-100);
+}
+
+.ng-select.ng-select-multiple .ng-select-container .ng-value-container .ng-value .ng-value-label {
+  display: inline-block;
+  padding: 1px 5px;
+}
+
+.ng-select.ng-select-multiple .ng-select-container .ng-value-container .ng-value .ng-value-icon {
+  cursor: pointer;
+}
+
+.ng-select.ng-select-multiple .ng-select-container .ng-value-container .ng-value .ng-value-icon {
+  display: inline-block;
+  padding: 1px 5px;
+}
+
+
+.ng-select.ng-select-multiple .ng-select-container .ng-value-container {
+  flex-wrap: wrap;
+}
+
+.ng-select.ng-select-multiple .ng-select-container .ng-value-container {
+  padding-top: 5px;
+  padding-left: 7px;
+}
+
+.ng-select .ng-select-container .ng-value-container {
+  display: flex;
+  flex: 1;
+}
+
+
+.ng-select.ng-select-opened .ng-select-container {
+  z-index: 1001;
+}
+
+.ng-select.ng-select-opened>.ng-select-container {
+  background: var(--color-base-100);
+  border-color: #f3f2f2 #ccc #d9d9d9;
+}
+
+
+.ng-select .ng-select-container {
+  min-height: 26px;
+  align-items: center;
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items {
+  max-height: 240px;
+  overflow-y: auto;
+  background-color: var(--color-base-300);
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-optgroup {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
+  box-sizing: border-box;
+  cursor: pointer;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option .ng-option-label:empty:before {
+  content: "\200b";
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option .highlighted {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.disabled {
+  cursor: default;
+}
+
+.ng-dropdown-panel .scroll-host {
+  overflow: hidden;
+  overflow-y: auto;
+  position: relative;
+  display: block;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ng-dropdown-panel .scrollable-content {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.ng-dropdown-panel .total-padding {
+  width: 1px;
+  opacity: 0;
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected .ng-option-label,
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected.ng-option-marked .ng-option-label {
+  font-weight: 600;
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected,
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected.ng-option-marked {
+  color: var(--color-secondary);
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
+  padding: 8px 10px;
+}
+
+
+tr {
+  position: relative;
+  z-index: 0;
+}
+
+.ͼo {
+  color: #abb2bf;
+  background-color: var(--color-base-200);
+}
+
+.hljs {
+  color: #ddd;
+  background: var(--color-base-100) !important;
+}
+
+
+.ͼq {
+  color: var(--color-accent);
+}
+
+.no-wrap {
+  white-space: nowrap;
+}

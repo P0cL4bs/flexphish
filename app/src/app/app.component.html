@@ -1,0 +1,22 @@
+<div class="app-container flex h-screen">
+  <app-sidebar *ngIf="api.isValidJwtToken()"></app-sidebar>
+
+  <div class="main-content bg-base-200 flex-1 overflow-y-auto">
+    <app-navbar *ngIf="api.isValidJwtToken()"></app-navbar>
+    <app-toast-container *ngIf="api.isValidJwtToken()"></app-toast-container>
+
+    <div *ngIf="apiDisconnected" class="p-4">
+      <div role="alert" class="alert alert-warning alert-soft rounded">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span>Connection to the API ({{api.settings.URL()}}) was lost.</span>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

