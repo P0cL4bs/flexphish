@@ -140,7 +140,10 @@ zip: build frontend ## Package everything into zips for existing platforms
 			$(WARN) "Skipping zip for $$OUT_NAME: binary not found at $$BIN_PATH"; \
 			continue; \
 		fi; \
-		ZIP_NAME="$${OUT_NAME}_$(VERSION)"; \
+		ZIP_NAME="$(PROJECT_NAME)_$(VERSION)_$${OS}_$${ARCH}"; \
+		if [ "$$SUBARCH" != "" ] && [ "$$SUBARCH" != "$$ARCH" ] && [ "$$SUBARCH" != "-" ]; then \
+			ZIP_NAME="$${ZIP_NAME}_$${SUBARCH}"; \
+		fi; \
 		ZIP_PATH="$(BUILD_DIR)/$$ZIP_NAME.zip"; \
 		mkdir -p $(BUILD_DIR)/temp_zip/; \
 		cp "$$BIN_PATH" $(BUILD_DIR)/temp_zip/; \
