@@ -2,8 +2,8 @@ campaign:
     base_domain: localhost:8001
     subdomain_mode: true
 security:
-    jwt_secret: ""
-    test_mode_token: ""
+    jwt_secret: ba200585e2b34479fa650700672e1247bb5c255aa6c75228a2f7fc899dfb66d0
+    test_mode_token: 1696e7fb-75a5-4bac-a6b0-e16025fe32a5
 server:
     api_port: 8088
     campaign_port: 8001

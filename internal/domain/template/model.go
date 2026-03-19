@@ -80,3 +80,17 @@ type TemplateMetadata struct {
 	Mode        string     `json:"mode"`
 	HtmlFiles   []HtmlFile `json:"html_files"`
 }
+
+type EmailTemplate struct {
+	Id int64 `gorm:"primaryKey" json:"id"`
+
+	UserId int64 `gorm:"index;not null" json:"-"`
+
+	Name string `gorm:"not null" json:"name"`
+
+	Subject string `gorm:"not null" json:"subject"`
+	Body    string `gorm:"type:text;not null" json:"body"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
