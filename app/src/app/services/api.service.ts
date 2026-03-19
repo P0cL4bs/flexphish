@@ -17,6 +17,7 @@ import { Campaign, CreateCampaignRequest, UpdateCampaignRequest } from '../model
 import { PaginatedResponse } from '../models/paginated-response.model';
 import { Config } from '../models/config.model';
 import { CampaignAnalytics } from '../models/campaign-analytics.model';
+import { CreateGroupRequest, Group, GroupTarget, GroupTargetPayload, UpdateGroupRequest } from '../models/group.model';
 
 
 interface JWTPayload {
@@ -588,5 +589,96 @@ export class ApiService {
 
     }
 
-}
+    public getGroups(): Observable<Group[]> {
+        return this.http.get<Group[]>(
+            `${this.settings.URL()}/groups`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
 
+    public createGroup(payload: CreateGroupRequest): Observable<Group> {
+        return this.http.post<Group>(
+            `${this.settings.URL()}/groups`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateGroup(id: number, payload: UpdateGroupRequest): Observable<Group> {
+        return this.http.put<Group>(
+            `${this.settings.URL()}/groups/${id}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteGroup(id: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/groups/${id}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getGroupTargets(groupId: number): Observable<GroupTarget[]> {
+        return this.http.get<GroupTarget[]>(
+            `${this.settings.URL()}/groups/${groupId}/targets`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public createGroupTarget(groupId: number, payload: GroupTargetPayload): Observable<GroupTarget> {
+        return this.http.post<GroupTarget>(
+            `${this.settings.URL()}/groups/${groupId}/targets`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateGroupTarget(groupId: number, targetId: number, payload: GroupTargetPayload): Observable<GroupTarget> {
+        return this.http.put<GroupTarget>(
+            `${this.settings.URL()}/groups/${groupId}/targets/${targetId}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteGroupTarget(groupId: number, targetId: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/groups/${groupId}/targets/${targetId}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+}

@@ -7,6 +7,7 @@ import { CampaignView } from './components/campaign-view/campaign-view';
 import { CampaignDetailView } from './components/campaign-detail-view/campaign-detail-view';
 import { TemplateViewByID } from './components/template-view-by-id/template-view-by-id';
 import { ConfigView } from './components/config-view/config-view';
+import { GroupsView } from './components/groups-view/groups-view';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,10 @@ export const routes: Routes = [
   {
     path: 'config',
     component: ConfigView, canActivate: [AuthGuard]
+  },
+  {
+    path: 'groups',
+    component: GroupsView, canActivate: [AuthGuard]
   },
   { path: '**', redirectTo: 'dashboard' }
 ];

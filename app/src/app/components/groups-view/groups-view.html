@@ -1,0 +1,245 @@
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-2xl font-bold">Groups</h2>
+  <button class="btn btn-primary" (click)="openCreateGroupDialog()">+ New Group</button>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+  <section class="xl:col-span-4">
+    <div class="card bg-base-100 border border-base-300">
+      <div class="card-body gap-3">
+        <div class="flex items-center justify-between">
+          <h3 class="card-title text-base">Your Groups</h3>
+          <span class="badge badge-soft">{{ filteredGroups.length }}</span>
+        </div>
+
+        <input type="text" class="input input-bordered input-sm w-full" placeholder="Search group..."
+          [(ngModel)]="groupsSearch" (input)="applyGroupFilter()" />
+
+        <div *ngIf="loadingGroups" class="py-10 text-center">
+          <span class="loading loading-spinner loading-md"></span>
+        </div>
+
+        <div *ngIf="!loadingGroups" class="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
+          <button *ngFor="let group of filteredGroups" type="button"
+            class="w-full text-left p-3 rounded-box border transition-all"
+            [class.border-primary]="selectedGroup?.id === group.id" [class.bg-base-200]="selectedGroup?.id === group.id"
+            [class.border-base-300]="selectedGroup?.id !== group.id" (click)="selectGroup(group)">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="font-semibold leading-tight">{{ group.name }}</p>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="badge badge-sm" [class.badge-accent]="group.is_global"
+                    [class.badge-primary]="!group.is_global">
+                    {{ group.is_global ? 'global' : 'private' }}
+                  </span>
+                  <span class="badge badge-sm badge-soft badge-secondary">{{ getTargetCount(group) }} targets</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1">
+                <button class="btn btn-soft " (click)="openEditGroupDialog(group, $event)"><lucide-icon
+                    name="square-pen" size="16"></lucide-icon> Edit</button>
+                <button class="btn btn-soft text-error" (click)="deleteGroup(group, $event)"><lucide-icon name="trash-2"
+                    size="16"></lucide-icon> Delete</button>
+              </div>
+            </div>
+          </button>
+
+          <div *ngIf="filteredGroups.length === 0"
+            class="p-6 border border-dashed border-base-300 rounded-box text-center opacity-70">
+            No groups found
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="xl:col-span-8">
+    <div class="card bg-base-100 border border-base-300">
+      <div class="card-body">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h3 class="card-title">
+              {{ selectedGroup?.name || 'Select a group' }}
+            </h3>
+            <p class="text-sm opacity-70" *ngIf="selectedGroup">
+              Manage targets for this group
+            </p>
+          </div>
+          <button class="btn btn-secondary" [disabled]="!selectedGroup" (click)="openCreateTargetDialog()">
+            + Add Target
+          </button>
+        </div>
+
+        <input type="text" class="input input-bordered input-sm w-full md:w-80" placeholder="Search target..."
+          [(ngModel)]="targetsSearch" (input)="applyTargetFilter()" [disabled]="!selectedGroup" />
+
+        <div *ngIf="!selectedGroup"
+          class="p-12 border border-dashed border-base-300 rounded-box text-center opacity-70">
+          Select a group to manage its targets
+        </div>
+
+        <div *ngIf="selectedGroup" class="overflow-x-auto border border-base-300 rounded-box">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Position</th>
+                <th class="w-28">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="loadingTargets">
+                <td colspan="5" class="text-center py-8">
+                  <span class="loading loading-spinner loading-md"></span>
+                </td>
+              </tr>
+
+              <tr *ngFor="let target of filteredTargets">
+                <td>{{ target.first_name || '-' }}</td>
+                <td>{{ target.last_name || '-' }}</td>
+                <td>{{ target.email }}</td>
+                <td>{{ target.position || '-' }}</td>
+                <td>
+                  <div class="flex items-center gap-1">
+                    <button class="btn btn-soft" (click)="openEditTargetDialog(target)"><lucide-icon name="square-pen"
+                        size="16"></lucide-icon> Edit</button>
+                    <button class="btn btn-soft text-error" (click)="deleteTarget(target)"><lucide-icon name="trash-2"
+                        size="16"></lucide-icon> Delete</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="!loadingTargets && filteredTargets.length === 0">
+                <td colspan="5" class="text-center py-8 opacity-70">No targets yet</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<dialog #createGroupDialog class="modal">
+  <div class="modal-box max-w-3xl">
+    <h3 class="font-bold text-lg mb-4">Create Group</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Group name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="groupForm.name" placeholder="Sales Team" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Visibility</span></label>
+        <select class="select select-bordered w-full" [(ngModel)]="groupForm.is_global">
+          <option [ngValue]="false">Private</option>
+          <option [ngValue]="true">Global</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider my-3">Initial Targets (Optional)</div>
+
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      <div *ngFor="let row of createGroupTargets; index as i" class="grid grid-cols-1 md:grid-cols-12 gap-2">
+        <input class="input input-bordered input-sm md:col-span-2" placeholder="First name"
+          [(ngModel)]="row.first_name" />
+        <input class="input input-bordered input-sm md:col-span-2" placeholder="Last name"
+          [(ngModel)]="row.last_name" />
+        <input class="input input-bordered input-sm md:col-span-4" placeholder="Email" [(ngModel)]="row.email" />
+        <input class="input input-bordered input-sm md:col-span-3" placeholder="Position" [(ngModel)]="row.position" />
+        <button class="btn btn-ghost btn-sm md:col-span-1 text-error" (click)="removeInitialTarget(i)">X</button>
+      </div>
+    </div>
+
+    <button class="btn btn-outline btn-sm mt-3" (click)="addInitialTarget()">+ Add Initial Target</button>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeCreateGroupDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="creatingGroup" [disabled]="creatingGroup"
+        (click)="createGroup()">Create</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #editGroupDialog class="modal">
+  <div class="modal-box max-w-lg">
+    <h3 class="font-bold text-lg mb-4">Edit Group</h3>
+
+    <label class="label"><span class="label-text">Group name</span></label>
+    <input class="input input-bordered w-full mb-3" [(ngModel)]="groupForm.name" />
+
+    <label class="label"><span class="label-text">Visibility</span></label>
+    <select class="select select-bordered w-full" [(ngModel)]="groupForm.is_global">
+      <option [ngValue]="false">Private</option>
+      <option [ngValue]="true">Global</option>
+    </select>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeEditGroupDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="savingGroup" [disabled]="savingGroup"
+        (click)="updateGroup()">Save</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #createTargetDialog class="modal">
+  <div class="modal-box max-w-xl">
+    <h3 class="font-bold text-lg mb-4">Add Target</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="label"><span class="label-text">First Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.first_name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Last Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.last_name" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Email</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.email" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Position</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.position" />
+      </div>
+    </div>
+    <div class="modal-action">
+      <button class="btn" (click)="closeCreateTargetDialog()">Cancel</button>
+      <button class="btn btn-secondary" [class.loading]="creatingTarget" [disabled]="creatingTarget"
+        (click)="createTarget()">Create Target</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #editTargetDialog class="modal">
+  <div class="modal-box max-w-xl">
+    <h3 class="font-bold text-lg mb-4">Edit Target</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="label"><span class="label-text">First Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.first_name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Last Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.last_name" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Email</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.email" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Position</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.position" />
+      </div>
+    </div>
+    <div class="modal-action">
+      <button class="btn" (click)="closeEditTargetDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="savingTarget" [disabled]="savingTarget"
+        (click)="updateTarget()">Save</button>
+    </div>
+  </div>
+</dialog>
