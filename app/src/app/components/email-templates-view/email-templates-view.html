@@ -1,0 +1,145 @@
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-2xl font-bold">Email Templates</h2>
+  <button class="btn btn-primary" (click)="openCreateDialog()">+ New Email Template</button>
+</div>
+
+<div class="card bg-base-100 border border-base-300">
+  <div class="card-body gap-4">
+    <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+      <input type="text" class="input input-bordered input-sm w-full md:w-96"
+        placeholder="Search by name, subject or body..." [(ngModel)]="search" (input)="applyFilter()" />
+      <span class="badge badge-soft badge-accent">{{ filteredTemplates.length }} templates</span>
+    </div>
+
+    <div class="overflow-x-auto border border-base-300 rounded-box">
+      <table class="table table-zebra">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Subject</th>
+            <th>Scope</th>
+            <th>Updated</th>
+            <th class="w-28">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="5" class="text-center py-10">
+              <span class="loading loading-spinner loading-md"></span>
+            </td>
+          </tr>
+
+          <tr *ngFor="let template of filteredTemplates">
+            <td class="font-semibold">{{ template.name }}</td>
+            <td>{{ template.subject }}</td>
+            <td>
+              <span class="badge badge-sm" [class.badge-neutral]="template.is_global"
+                [class.badge-ghost]="!template.is_global">
+                {{ template.is_global ? 'global' : 'local' }}
+              </span>
+            </td>
+            <td>{{ template.updated_at ? (template.updated_at | date:'short') : '-' }}</td>
+            <td>
+              <div class="flex items-center gap-1">
+                <button class="btn btn-soft" (click)="openEditDialog(template)"><lucide-icon name="square-pen"
+                    size="16"></lucide-icon> Edit</button>
+                <button class="btn btn-soft text-error" (click)="deleteTemplate(template)"> <lucide-icon name="trash-2"
+                    size="16"></lucide-icon> Delete</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && filteredTemplates.length === 0">
+            <td colspan="5" class="text-center py-10 opacity-70">No email templates found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<dialog #createDialog class="modal">
+  <div class="modal-box max-w-6xl">
+    <h3 class="font-bold text-lg mb-4">Create Email Template</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div>
+        <label class="label"><span class="label-text">Name *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.name" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Subject *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.subject" />
+      </div>
+      <label class="label cursor-pointer justify-between md:col-span-3 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Global template</span>
+        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
+      </label>
+    </div>
+
+    <div role="tablist" class="tabs tabs-lift">
+      <input type="radio" name="create_email_body_tabs" role="tab" class="tab" aria-label="HTML Code" checked />
+      <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-3">
+        <code-editor class="textarea h-[380px] w-full text-sm" [extensions]="[language_html]" [theme]="'dark'"
+          [(ngModel)]="form.body">
+        </code-editor>
+      </div>
+
+      <input type="radio" name="create_email_body_tabs" role="tab" class="tab" aria-label="Preview" />
+      <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-4 min-h-[380px]">
+        <div class="bg-base-200 border border-base-300 rounded-lg p-4 min-h-[340px]">
+          <div [innerHTML]="form.body"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeCreateDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="creating" [disabled]="creating"
+        (click)="createTemplate()">Create</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #editDialog class="modal">
+  <div class="modal-box max-w-6xl">
+    <h3 class="font-bold text-lg mb-4">Edit Email Template</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div>
+        <label class="label"><span class="label-text">Name *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.name" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Subject *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.subject" />
+      </div>
+      <label class="label cursor-pointer justify-between md:col-span-3 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Global template</span>
+        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
+      </label>
+    </div>
+
+    <div role="tablist" class="tabs tabs-lift">
+      <input type="radio" name="edit_email_body_tabs" role="tab" class="tab" aria-label="HTML Code" checked />
+      <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-3">
+        <code-editor class="textarea h-[380px] w-full text-sm" [extensions]="[language_html]" [theme]="'dark'"
+          [(ngModel)]="form.body">
+        </code-editor>
+      </div>
+
+      <input type="radio" name="edit_email_body_tabs" role="tab" class="tab" aria-label="Preview" />
+      <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-4 min-h-[380px]">
+        <div class="bg-base-200 border border-base-300 rounded-lg p-4 min-h-[340px]">
+          <div [innerHTML]="form.body"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeEditDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="saving" [disabled]="saving"
+        (click)="updateTemplate()">Save</button>
+    </div>
+  </div>
+</dialog>

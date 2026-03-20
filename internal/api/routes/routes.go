@@ -41,6 +41,7 @@ func SetupRoutes(
 	staticFileRepo := repository.NewStaticFileRepository(config.GetString("template_assets_dir"), templateRepo)
 	groupRepo := repository.NewGroupRepository(db)
 	smtpRepo := repository.NewSMTPRepository(db)
+	emailTemplateRepo := repository.NewEmailTemplateRepository(db)
 
 	templateHandler := handlers.NewTemplateHandler(templateRepo, campaignRepo)
 	configHandler := handlers.NewConfigHandler()
@@ -52,6 +53,7 @@ func SetupRoutes(
 	RegisterConfigRoutes(protected, configHandler)
 	RegisterGroupRoutes(protected, groupRepo)
 	RegisterSMTPRoutes(protected, smtpRepo)
+	RegisterEmailTemplateRoutes(protected, emailTemplateRepo)
 
 	protected.HandleFunc("/auth/validate", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

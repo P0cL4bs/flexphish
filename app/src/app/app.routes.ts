@@ -9,6 +9,7 @@ import { TemplateViewByID } from './components/template-view-by-id/template-view
 import { ConfigView } from './components/config-view/config-view';
 import { GroupsView } from './components/groups-view/groups-view';
 import { SMTPServersView } from './components/smtp-servers-view/smtp-servers-view';
+import { EmailTemplatesView } from './components/email-templates-view/email-templates-view';
 
 export const routes: Routes = [
   {
@@ -48,6 +49,10 @@ export const routes: Routes = [
   {
     path: 'smtp-servers',
     component: SMTPServersView, canActivate: [AuthGuard]
+  },
+  {
+    path: 'email-templates',
+    component: EmailTemplatesView, canActivate: [AuthGuard]
   },
   { path: '**', redirectTo: 'dashboard' }
 ];

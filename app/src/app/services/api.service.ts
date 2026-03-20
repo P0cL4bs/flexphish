@@ -19,6 +19,7 @@ import { Config } from '../models/config.model';
 import { CampaignAnalytics } from '../models/campaign-analytics.model';
 import { CreateGroupRequest, Group, GroupTarget, GroupTargetPayload, UpdateGroupRequest } from '../models/group.model';
 import { SMTPProfile, SMTPProfilePayload, SMTPTestPayload } from '../models/smtp.model';
+import { EmailTemplate, EmailTemplatePayload } from '../models/email-template.model';
 
 
 interface JWTPayload {
@@ -732,6 +733,52 @@ export class ApiService {
         return this.http.post<{ message: string }>(
             `${this.settings.URL()}/smtp-profiles/test`,
             payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getEmailTemplates(): Observable<EmailTemplate[]> {
+        return this.http.get<EmailTemplate[]>(
+            `${this.settings.URL()}/email-templates`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public createEmailTemplate(payload: EmailTemplatePayload): Observable<EmailTemplate> {
+        return this.http.post<EmailTemplate>(
+            `${this.settings.URL()}/email-templates`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateEmailTemplate(id: number, payload: EmailTemplatePayload): Observable<EmailTemplate> {
+        return this.http.put<EmailTemplate>(
+            `${this.settings.URL()}/email-templates/${id}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteEmailTemplate(id: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/email-templates/${id}`,
             { headers: this.creds.headers }
         ).pipe(
             catchError((error: HttpErrorResponse) => {

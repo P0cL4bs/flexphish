@@ -37,3 +37,13 @@ type StaticFileRepository interface {
 	UpdateByTemplateFilename(templateFilename, filename, content string) (*FileComplete, error)
 	DeleteByTemplateFilename(templateFilename, filename string) (*FileComplete, error)
 }
+
+type EmailTemplateRepository interface {
+	Create(emailTemplate *EmailTemplate) error
+	Update(emailTemplate *EmailTemplate) error
+	Delete(id int64) error
+
+	GetByID(id int64) (*EmailTemplate, error)
+	GetAll(userID int64) ([]EmailTemplate, error)
+	ExistsByName(name string, userID int64, isGlobal bool, excludeID *int64) (bool, error)
+}
