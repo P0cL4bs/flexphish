@@ -70,7 +70,7 @@ export class CampaignDetailView {
   loadingSMTPProfiles = false;
   emailTemplates: EmailTemplate[] = [];
   loadingEmailTemplates = false;
-  searchTerm: string = '';
+  eventSearchTerm: string = '';
 
   config!: Config;
 
@@ -338,6 +338,35 @@ export class CampaignDetailView {
     }
   }
 
+  isEmailOpened(target: CampaignTarget): boolean {
+    return !!target.opened_at;
+  }
+
+  getTargetInteractionLabel(target: CampaignTarget): string {
+    if (target.submitted_at) return 'Submitted';
+    if (target.clicked_at) return 'Clicked';
+    if (target.opened_at) return 'Opened';
+    if (target.email_sent_at) return 'Sent';
+    return 'Pending';
+  }
+
+  getTargetInteractionBadge(target: CampaignTarget): string {
+    const label = this.getTargetInteractionLabel(target);
+    switch (label) {
+      case 'Submitted':
+        return 'badge-success';
+      case 'Clicked':
+        return 'badge-info';
+      case 'Opened':
+        return 'badge-secondary';
+      case 'Sent':
+        return 'badge-primary';
+      case 'Pending':
+      default:
+        return 'badge-warning';
+    }
+  }
+
   getUrl(): string {
     return `http://${this.campaign?.subdomain}.${this.config.campaign.base_domain}?test_mode_token=${this.config.security.test_mode_token}`;
   }
@@ -363,11 +392,29 @@ export class CampaignDetailView {
   getEventsByResult(resultId: number) {
     if (!this.campaign?.events) return [];
 
-    const events = this.campaign.events.filter(
+    return this.campaign.events.filter(
       ev => ev.result_id === resultId
     );
+  }
 
-    return this.filterEvents(events);
+  getFilteredResults() {
+    const results = this.campaign?.results || [];
+    const term = this.eventSearchTerm.trim().toLowerCase();
+
+    if (!term) {
+      return results;
+    }
+
+    return results.filter(result => {
+      return (
+        result.email?.toLowerCase().includes(term) ||
+        result.username?.toLowerCase().includes(term) ||
+        result.session_id?.toLowerCase().includes(term) ||
+        result.ip?.toLowerCase().includes(term) ||
+        result.user_agent?.toLowerCase().includes(term) ||
+        result.status?.toLowerCase().includes(term)
+      );
+    });
   }
 
   shortenUserAgent(ua?: string): string {
@@ -630,22 +677,5 @@ export class CampaignDetailView {
 
       });
 
-  }
-  filterEvents(events: any[]) {
-    if (!this.searchTerm) return events;
-
-    const term = this.searchTerm.toLowerCase();
-
-    return events.filter(ev => {
-      return (
-        ev.type?.toLowerCase().includes(term) ||
-        ev.step?.toLowerCase().includes(term) ||
-        ev.path?.toLowerCase().includes(term) ||
-        ev.user_agent?.toLowerCase().includes(term) ||
-        ev.ip?.toLowerCase().includes(term) ||
-        ev.referrer?.toLowerCase().includes(term) ||
-        JSON.stringify(ev.metadata || '').toLowerCase().includes(term)
-      );
-    });
   }
 }

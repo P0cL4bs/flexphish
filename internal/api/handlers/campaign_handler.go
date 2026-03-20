@@ -11,6 +11,7 @@ import (
 	"flexphish/internal/domain/smtp"
 	"flexphish/internal/domain/target"
 	"flexphish/internal/domain/template"
+	"flexphish/pkg/logger"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -488,6 +490,13 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if camp.SendEmails {
+		camp.EmailDispatchStatus = campaign.EmailDispatchQueued
+		camp.EmailDispatchQueuedAt = &now
+		camp.EmailDispatchStartedAt = nil
+		camp.EmailDispatchCompletedAt = nil
+		camp.EmailDispatchLastError = ""
+		camp.EmailDispatchLastAttemptAt = nil
+
 		if camp.SMTPProfileId == nil || camp.EmailTemplateId == nil {
 			JSONResponse(w, http.StatusBadRequest, map[string]string{
 				"error": "smtp_profile_id and email_template_id are required when send_emails is enabled",
@@ -510,6 +519,17 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+	} else {
+		camp.EmailDispatchStatus = campaign.EmailDispatchIdle
+		camp.EmailDispatchQueuedAt = nil
+		camp.EmailDispatchStartedAt = nil
+		camp.EmailDispatchCompletedAt = nil
+		camp.EmailDispatchLastError = ""
+		camp.EmailDispatchLastAttemptAt = nil
+		camp.EmailDispatchTotalTargets = 0
+		camp.EmailDispatchSent = 0
+		camp.EmailDispatchFailed = 0
+		camp.EmailDispatchPending = 0
 	}
 
 	if err := h.repo.Update(camp); err != nil {
@@ -517,10 +537,6 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 			"error": err.Error(),
 		})
 		return
-	}
-
-	if camp.SendEmails {
-		go h.sendCampaignEmailsInBackground(camp.Id, userID)
 	}
 
 	updatedCampaign, err := h.repo.GetByID(id, userID)
@@ -533,36 +549,116 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userID int64) {
+	startedAt := time.Now()
+
+	logger.Log.Info("campaign email dispatch worker started",
+		zap.Int64("campaign_id", campaignID),
+		zap.Int64("user_id", userID),
+	)
+
 	camp, err := h.repo.GetByID(campaignID, userID)
 	if err != nil {
+		logger.Log.Error("campaign email dispatch failed to load campaign",
+			zap.Int64("campaign_id", campaignID),
+			zap.Int64("user_id", userID),
+			zap.Error(err),
+		)
 		return
 	}
 
 	if !camp.SendEmails || camp.SMTPProfileId == nil || camp.EmailTemplateId == nil {
+		logger.Log.Warn("campaign email dispatch skipped due to missing email configuration",
+			zap.Int64("campaign_id", campaignID),
+			zap.Int64("user_id", userID),
+			zap.Bool("send_emails", camp.SendEmails),
+		)
 		return
 	}
 
 	profile, err := h.smtpRepo.GetByID(*camp.SMTPProfileId)
 	if err != nil {
+		logger.Log.Error("campaign email dispatch failed to load smtp profile",
+			zap.Int64("campaign_id", campaignID),
+			zap.Int64("smtp_profile_id", *camp.SMTPProfileId),
+			zap.Error(err),
+		)
 		return
 	}
 
 	emailTemplate, err := h.emailTemplateRepo.GetByID(*camp.EmailTemplateId)
 	if err != nil {
+		logger.Log.Error("campaign email dispatch failed to load email template",
+			zap.Int64("campaign_id", campaignID),
+			zap.Int64("email_template_id", *camp.EmailTemplateId),
+			zap.Error(err),
+		)
 		return
 	}
 
 	targets, err := h.collectCampaignTargets(camp.Groups)
 	if err != nil || len(targets) == 0 {
+		logger.Log.Warn("campaign email dispatch has no eligible targets",
+			zap.Int64("campaign_id", campaignID),
+			zap.Int("groups_count", len(camp.Groups)),
+			zap.Error(err),
+		)
+		now := time.Now()
+		camp.EmailDispatchStatus = campaign.EmailDispatchFailed
+		camp.EmailDispatchLastError = "campaign has no eligible targets in selected groups"
+		camp.EmailDispatchCompletedAt = &now
+		camp.EmailDispatchLastAttemptAt = &now
+		camp.EmailDispatchTotalTargets = 0
+		camp.EmailDispatchSent = 0
+		camp.EmailDispatchFailed = 0
+		camp.EmailDispatchPending = 0
+		_ = h.repo.Update(camp)
 		return
 	}
 
+	now := time.Now()
+	camp.EmailDispatchStatus = campaign.EmailDispatchProcessing
+	camp.EmailDispatchStartedAt = &now
+	camp.EmailDispatchCompletedAt = nil
+	camp.EmailDispatchLastError = ""
+	_ = h.repo.Update(camp)
+
+	totalTargets := int64(len(targets))
 	baseURL := h.buildCampaignURL(camp.Subdomain)
 	sentCount := int64(0)
+	failedCount := int64(0)
+	emailsPerMinute := config.GetInt("email_scheduler.emails_per_minute")
+	if emailsPerMinute <= 0 {
+		emailsPerMinute = 60
+	}
+	batchSize := config.GetInt("email_scheduler.batch_size")
+	if batchSize <= 0 {
+		batchSize = 25
+	}
+	batchPauseMS := config.GetInt("email_scheduler.batch_pause_ms")
+	if batchPauseMS < 0 {
+		batchPauseMS = 0
+	}
+
+	perEmailDelay := time.Minute / time.Duration(emailsPerMinute)
+	var lastSendAt time.Time
+	processedInBatch := 0
+
+	logger.Log.Info("campaign email dispatch processing started",
+		zap.Int64("campaign_id", campaignID),
+		zap.Int64("targets", totalTargets),
+		zap.Int("emails_per_minute", emailsPerMinute),
+		zap.Int("batch_size", batchSize),
+		zap.Int("batch_pause_ms", batchPauseMS),
+	)
 
 	for _, t := range targets {
 		existingTarget, err := h.repo.GetCampaignTargetByTargetID(camp.Id, t.Id)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Log.Warn("campaign email dispatch skipped target due to lookup error",
+				zap.Int64("campaign_id", camp.Id),
+				zap.Int64("target_id", t.Id),
+				zap.Error(err),
+			)
 			continue
 		}
 
@@ -586,6 +682,11 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 		if token == "" {
 			token, err = generateCampaignToken()
 			if err != nil {
+				logger.Log.Warn("campaign email dispatch failed to generate token",
+					zap.Int64("campaign_id", camp.Id),
+					zap.Int64("target_id", t.Id),
+					zap.Error(err),
+				)
 				continue
 			}
 			campaignTarget.Token = token
@@ -598,6 +699,13 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 		body := renderEmailTemplateField(emailTemplate.Body, t, trackedURL)
 		msg, fromEmail := buildCampaignEmailMessage(profile, t.Email, subject, body)
 
+		if !lastSendAt.IsZero() {
+			elapsed := time.Since(lastSendAt)
+			if elapsed < perEmailDelay {
+				time.Sleep(perEmailDelay - elapsed)
+			}
+		}
+
 		sendErr := sendSMTPMessage(
 			profile.Host,
 			profile.Port,
@@ -609,7 +717,23 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 		)
 		if sendErr != nil {
 			campaignTarget.Status = "failed"
+			camp.EmailDispatchLastError = sendErr.Error()
 			_ = h.repo.SaveCampaignTarget(campaignTarget)
+			logger.Log.Warn("campaign email dispatch failed to send",
+				zap.Int64("campaign_id", camp.Id),
+				zap.Int64("target_id", t.Id),
+				zap.String("email", t.Email),
+				zap.Error(sendErr),
+			)
+			lastSendAt = time.Now()
+			processedInBatch++
+			failedCount++
+			if processedInBatch >= batchSize {
+				processedInBatch = 0
+				if batchPauseMS > 0 {
+					time.Sleep(time.Duration(batchPauseMS) * time.Millisecond)
+				}
+			}
 			continue
 		}
 
@@ -618,14 +742,60 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 		campaignTarget.EmailSentAt = &sentAt
 
 		if err := h.repo.SaveCampaignTarget(campaignTarget); err != nil {
+			lastSendAt = time.Now()
+			processedInBatch++
+			if processedInBatch >= batchSize {
+				processedInBatch = 0
+				if batchPauseMS > 0 {
+					time.Sleep(time.Duration(batchPauseMS) * time.Millisecond)
+				}
+			}
 			continue
 		}
 
 		sentCount++
+		lastSendAt = time.Now()
+		processedInBatch++
+		if processedInBatch >= batchSize {
+			processedInBatch = 0
+			if batchPauseMS > 0 {
+				time.Sleep(time.Duration(batchPauseMS) * time.Millisecond)
+			}
+		}
 	}
 
 	camp.TotalSent = sentCount
+	camp.EmailDispatchTotalTargets = totalTargets
+	camp.EmailDispatchSent = sentCount
+	camp.EmailDispatchFailed = failedCount
+	camp.EmailDispatchPending = maxInt64(totalTargets-sentCount-failedCount, 0)
+	finishedAt := time.Now()
+	camp.EmailDispatchCompletedAt = &finishedAt
+	camp.EmailDispatchLastAttemptAt = &finishedAt
+	if failedCount > 0 || camp.EmailDispatchPending > 0 {
+		camp.EmailDispatchStatus = campaign.EmailDispatchFailed
+	} else {
+		camp.EmailDispatchStatus = campaign.EmailDispatchCompleted
+	}
 	_ = h.repo.Update(camp)
+
+	logger.Log.Info("campaign email dispatch worker finished",
+		zap.Int64("campaign_id", campaignID),
+		zap.Int64("user_id", userID),
+		zap.Int64("total_targets", camp.EmailDispatchTotalTargets),
+		zap.Int64("sent", camp.EmailDispatchSent),
+		zap.Int64("failed", camp.EmailDispatchFailed),
+		zap.Int64("pending", camp.EmailDispatchPending),
+		zap.String("dispatch_status", string(camp.EmailDispatchStatus)),
+		zap.Duration("duration", time.Since(startedAt)),
+	)
+}
+
+func maxInt64(a int64, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (h *CampaignHandler) collectCampaignTargets(groups []group.Group) ([]target.Target, error) {

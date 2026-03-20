@@ -11,6 +11,7 @@ import (
 )
 
 type CampaignStatus string
+type EmailDispatchStatus string
 
 const (
 	StatusDraft     CampaignStatus = "draft"
@@ -19,6 +20,14 @@ const (
 	StatusStopped   CampaignStatus = "stopped"
 	StatusCompleted CampaignStatus = "completed"
 	StatusCancelled CampaignStatus = "cancelled"
+)
+
+const (
+	EmailDispatchIdle       EmailDispatchStatus = "idle"
+	EmailDispatchQueued     EmailDispatchStatus = "queued"
+	EmailDispatchProcessing EmailDispatchStatus = "processing"
+	EmailDispatchCompleted  EmailDispatchStatus = "completed"
+	EmailDispatchFailed     EmailDispatchStatus = "failed"
 )
 
 type Campaign struct {
@@ -52,6 +61,18 @@ type Campaign struct {
 	SMTPProfileId   *int64 `gorm:"index" json:"smtp_profile_id,omitempty"`
 	EmailTemplateId *int64 `gorm:"index" json:"email_template_id,omitempty"`
 
+	EmailDispatchStatus        EmailDispatchStatus `gorm:"type:text;default:'idle';index" json:"email_dispatch_status"`
+	EmailDispatchQueuedAt      *time.Time          `json:"email_dispatch_queued_at,omitempty"`
+	EmailDispatchStartedAt     *time.Time          `json:"email_dispatch_started_at,omitempty"`
+	EmailDispatchCompletedAt   *time.Time          `json:"email_dispatch_completed_at,omitempty"`
+	EmailDispatchLastAttemptAt *time.Time          `json:"email_dispatch_last_attempt_at,omitempty"`
+	EmailDispatchLastError     string              `gorm:"type:text" json:"email_dispatch_last_error,omitempty"`
+
+	EmailDispatchTotalTargets int64 `gorm:"default:0" json:"email_dispatch_total_targets"`
+	EmailDispatchSent         int64 `gorm:"default:0" json:"email_dispatch_sent"`
+	EmailDispatchFailed       int64 `gorm:"default:0" json:"email_dispatch_failed"`
+	EmailDispatchPending      int64 `gorm:"default:0" json:"email_dispatch_pending"`
+
 	SMTPProfile   *smtp.SMTPProfile       `gorm:"foreignKey:SMTPProfileId" json:"smtp_profile,omitempty"`
 	EmailTemplate *template.EmailTemplate `gorm:"foreignKey:EmailTemplateId" json:"email_template,omitempty"`
 
@@ -80,10 +101,12 @@ type Campaign struct {
 type CampaignTarget struct {
 	Id int64 `gorm:"primaryKey" json:"id"`
 
-	CampaignId int64 `gorm:"index;not null" json:"campaign_id"`
-	TargetId   int64 `gorm:"index;not null" json:"target_id"`
+	CampaignId int64  `gorm:"index;not null" json:"campaign_id"`
+	TargetId   int64  `gorm:"index;not null" json:"target_id"`
+	ResultId   *int64 `gorm:"index" json:"result_id,omitempty"`
 
-	Target target.Target `json:"target,omitempty"`
+	Target target.Target  `json:"target,omitempty"`
+	Result *result.Result `json:"result,omitempty"`
 
 	Token string `gorm:"uniqueIndex;size:64" json:"token"`
 

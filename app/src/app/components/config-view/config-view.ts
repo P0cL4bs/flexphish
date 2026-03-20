@@ -60,6 +60,22 @@ export class ConfigView implements OnInit {
       next: (data) => {
 
         this.config = data
+        if (!this.config.email_scheduler) {
+          this.config.email_scheduler = {
+            enabled: true,
+            poll_interval_seconds: 15,
+            emails_per_minute: 60,
+            batch_size: 25,
+            batch_pause_ms: 1000,
+            max_parallel_campaigns: 3
+          }
+        }
+
+        this.config.email_scheduler.poll_interval_seconds = this.config.email_scheduler.poll_interval_seconds || 15
+        this.config.email_scheduler.emails_per_minute = this.config.email_scheduler.emails_per_minute || 60
+        this.config.email_scheduler.batch_size = this.config.email_scheduler.batch_size || 25
+        this.config.email_scheduler.batch_pause_ms = this.config.email_scheduler.batch_pause_ms ?? 1000
+        this.config.email_scheduler.max_parallel_campaigns = this.config.email_scheduler.max_parallel_campaigns || 3
         this.loading = false
 
       },

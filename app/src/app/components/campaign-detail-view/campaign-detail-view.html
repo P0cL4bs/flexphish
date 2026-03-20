@@ -335,7 +335,7 @@
         <div class="card-body">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="card-title">
-                    Email Delivery
+                    Dispatch
                 </h2>
 
                 <span *ngIf="isEmailDeliveryInProgress()" class="badge badge-warning gap-2">
@@ -383,7 +383,9 @@
                             <th class="bg-base-300 rounded-s-box lg:py-2">Target</th>
                             <th class="bg-base-300 lg:py-2">Email</th>
                             <th class="bg-base-300 lg:py-2">Position</th>
-                            <th class="bg-base-300 lg:py-2">Status</th>
+                            <th class="bg-base-300 lg:py-2">Opened</th>
+                            <th class="bg-base-300 lg:py-2">Interaction</th>
+                            <th class="bg-base-300 lg:py-2">Result</th>
                             <th class="bg-base-300 lg:py-2">Token</th>
                             <th class="bg-base-300 lg:py-2">Sent At</th>
                             <th class="bg-base-300 rounded-e-box lg:py-2">Submitted</th>
@@ -392,7 +394,7 @@
 
                     <tbody>
                         <tr *ngIf="getCampaignTargets().length === 0">
-                            <td colspan="7" class="text-center text-gray-500 py-4">
+                            <td colspan="9" class="text-center text-gray-500 py-4">
                                 No campaign targets yet.
                             </td>
                         </tr>
@@ -409,9 +411,27 @@
                             </td>
                             <td>
                                 <span class="badge badge-soft badge-sm font-bold"
-                                    [ngClass]="getTargetStatusBadge(target.status)">
-                                    {{ target.status }}
+                                    [ngClass]="isEmailOpened(target) ? 'badge-success' : 'badge-ghost'">
+                                    {{ isEmailOpened(target) ? 'Yes' : 'No' }}
                                 </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-soft badge-sm font-bold"
+                                    [ngClass]="getTargetInteractionBadge(target)">
+                                    {{ getTargetInteractionLabel(target) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-soft badge-sm font-bold" [ngClass]="{
+            'badge-success': target.result?.status === 'completed',
+            'badge-warning': target.result?.status === 'in_progress',
+            'badge-error': target.result?.status === 'abandoned'
+          }">
+                                    {{ target.result?.status || '-' }}
+                                </span>
+                                <div class="text-xs opacity-70 mt-1" *ngIf="target.result?.session_id">
+                                    {{ target.result?.session_id | slice:0:8 }}...
+                                </div>
                             </td>
                             <td class="font-mono text-xs">
                                 {{ target.token | slice:0:12 }}...
@@ -436,6 +456,13 @@
                 Results
             </h2>
 
+            <div class="mb-4">
+                <label class="input input-bordered flex items-center gap-2">
+                    <input type="text" class="grow" placeholder="Search results and events..."
+                        [(ngModel)]="eventSearchTerm" />
+                </label>
+            </div>
+
             <div class="mt-2 mb-10 w-full">
 
                 <table class="table-xs md:table-sm table table-zebra w-full">
@@ -458,13 +485,13 @@
 
                     <tbody>
 
-                        <tr *ngIf="!campaign.results || campaign.results.length === 0">
+                        <tr *ngIf="getFilteredResults().length === 0">
                             <td colspan="11" class="text-center text-gray-500 py-4">
-                                No results captured yet.
+                                {{ eventSearchTerm ? 'No matches for this search.' : 'No results captured yet.' }}
                             </td>
                         </tr>
 
-                        <ng-container *ngFor="let r of campaign.results; let i = index">
+                        <ng-container *ngFor="let r of getFilteredResults(); let i = index">
 
                             <!-- RESULT ROW -->
                             <tr class="cursor-pointer transition-colors" (click)="toggleResult(r.id)" [ngClass]="{
@@ -564,12 +591,6 @@
                                         </div>
 
                                         <div class="collapse-content">
-                                            <div class="mb-3">
-                                                <label class="input input-bordered flex items-center gap-2">
-                                                    <input type="text" class="grow" placeholder="Search events..."
-                                                        [(ngModel)]="searchTerm" />
-                                                </label>
-                                            </div>
                                             <table class="table table-xs md:table-sm w-full">
 
                                                 <thead>

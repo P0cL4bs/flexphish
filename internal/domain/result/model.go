@@ -14,8 +14,9 @@ const (
 )
 
 type Result struct {
-	Id         int64 `gorm:"primaryKey" json:"id"`
-	CampaignId int64 `gorm:"index;not null" json:"campaign_id"`
+	Id               int64  `gorm:"primaryKey" json:"id"`
+	CampaignId       int64  `gorm:"index;not null" json:"campaign_id"`
+	CampaignTargetId *int64 `gorm:"index" json:"campaign_target_id,omitempty"`
 
 	SessionID string `gorm:"uniqueIndex;not null" json:"session_id"`
 

@@ -410,6 +410,22 @@ export class CampaignView implements OnInit {
   getEmailDeliveryLabel(campaign: Campaign): string {
     if (!campaign.send_emails) return 'Disabled';
 
+    if (campaign.email_dispatch_status) {
+      switch (campaign.email_dispatch_status) {
+        case 'queued':
+          return 'Queued';
+        case 'processing':
+          return 'In progress';
+        case 'completed':
+          return 'Complete';
+        case 'failed':
+          return 'Failed';
+        case 'idle':
+        default:
+          break;
+      }
+    }
+
     const targets = this.getCampaignDeliveryTargets(campaign);
     if (targets.length === 0) return 'Pending';
 
@@ -430,6 +446,10 @@ export class CampaignView implements OnInit {
         return 'badge-info';
       case 'Complete':
         return 'badge-success';
+      case 'Queued':
+        return 'badge-warning';
+      case 'Failed':
+        return 'badge-error';
       default:
         return 'badge-ghost';
     }

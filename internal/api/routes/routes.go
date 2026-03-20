@@ -63,6 +63,26 @@ func SetupRoutes(
 	RegisterSMTPRoutes(protected, smtpRepo)
 	RegisterEmailTemplateRoutes(protected, emailTemplateRepo)
 
+	emailScheduler := handlers.NewCampaignEmailScheduler(
+		campaignRepo,
+		handlers.NewCampaignHandler(
+			campaignRepo,
+			templateRepo,
+			groupRepo,
+			smtpRepo,
+			emailTemplateRepo,
+		),
+		config.EmailSchedulerConfig{
+			Enabled:              config.GetBool("email_scheduler.enabled"),
+			PollIntervalSeconds:  config.GetInt("email_scheduler.poll_interval_seconds"),
+			EmailsPerMinute:      config.GetInt("email_scheduler.emails_per_minute"),
+			BatchSize:            config.GetInt("email_scheduler.batch_size"),
+			BatchPauseMS:         config.GetInt("email_scheduler.batch_pause_ms"),
+			MaxParallelCampaigns: config.GetInt("email_scheduler.max_parallel_campaigns"),
+		},
+	)
+	emailScheduler.Start()
+
 	protected.HandleFunc("/auth/validate", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

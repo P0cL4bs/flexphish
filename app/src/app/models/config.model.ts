@@ -19,6 +19,15 @@ export interface Config {
         subdomain_mode: boolean
     }
 
+    email_scheduler: {
+        enabled: boolean
+        poll_interval_seconds: number
+        emails_per_minute: number
+        batch_size: number
+        batch_pause_ms: number
+        max_parallel_campaigns: number
+    }
+
     security: {
         test_mode_token: string
     }

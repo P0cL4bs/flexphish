@@ -49,6 +49,7 @@ func (r *CampaignRepository) GetByID(id int64, userId int64) (*campaign.Campaign
 		Preload("Groups.Targets").
 		Preload("CampaignTargets").
 		Preload("CampaignTargets.Target").
+		Preload("CampaignTargets.Result").
 		Preload("SMTPProfile").
 		Preload("EmailTemplate").
 		Where("id = ? AND user_id = ?", id, userId).
@@ -59,6 +60,23 @@ func (r *CampaignRepository) GetByID(id int64, userId int64) (*campaign.Campaign
 	}
 
 	return &c, nil
+}
+
+func (r *CampaignRepository) ListEmailDispatchCandidates() ([]campaign.Campaign, error) {
+	var campaigns []campaign.Campaign
+
+	err := r.db.
+		Preload("Groups").
+		Where("status = ? AND send_emails = ? AND launch_date IS NOT NULL AND is_archived = ? AND deleted_at IS NULL",
+			campaign.StatusActive, true, false).
+		Order("launch_date ASC").
+		Order("id ASC").
+		Find(&campaigns).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return campaigns, nil
 }
 
 func (r *CampaignRepository) GetByURL(url string) (*campaign.Campaign, error) {
@@ -131,17 +149,27 @@ func (r *CampaignRepository) Update(c *campaign.Campaign) error {
 			Model(&campaign.Campaign{}).
 			Where("id = ? AND user_id = ?", c.Id, c.UserId).
 			Updates(map[string]interface{}{
-				"name":              c.Name,
-				"subdomain":         c.Subdomain,
-				"launch_date":       c.LaunchDate,
-				"template_id":       c.TemplateId,
-				"completed_date":    c.CompletedDate,
-				"status":            c.Status,
-				"dev_mode":          c.DevMode,
-				"send_emails":       c.SendEmails,
-				"smtp_profile_id":   c.SMTPProfileId,
-				"email_template_id": c.EmailTemplateId,
-				"total_sent":        c.TotalSent,
+				"name":                           c.Name,
+				"subdomain":                      c.Subdomain,
+				"launch_date":                    c.LaunchDate,
+				"template_id":                    c.TemplateId,
+				"completed_date":                 c.CompletedDate,
+				"status":                         c.Status,
+				"dev_mode":                       c.DevMode,
+				"send_emails":                    c.SendEmails,
+				"smtp_profile_id":                c.SMTPProfileId,
+				"email_template_id":              c.EmailTemplateId,
+				"email_dispatch_status":          c.EmailDispatchStatus,
+				"email_dispatch_queued_at":       c.EmailDispatchQueuedAt,
+				"email_dispatch_started_at":      c.EmailDispatchStartedAt,
+				"email_dispatch_completed_at":    c.EmailDispatchCompletedAt,
+				"email_dispatch_last_attempt_at": c.EmailDispatchLastAttemptAt,
+				"email_dispatch_last_error":      c.EmailDispatchLastError,
+				"email_dispatch_total_targets":   c.EmailDispatchTotalTargets,
+				"email_dispatch_sent":            c.EmailDispatchSent,
+				"email_dispatch_failed":          c.EmailDispatchFailed,
+				"email_dispatch_pending":         c.EmailDispatchPending,
+				"total_sent":                     c.TotalSent,
 			}).Error; err != nil {
 			return err
 		}
@@ -166,6 +194,40 @@ func (r *CampaignRepository) GetCampaignTargetByTargetID(campaignID int64, targe
 		return nil, err
 	}
 	return &ct, nil
+}
+
+func (r *CampaignRepository) GetCampaignTargetByToken(campaignID int64, token string) (*campaign.CampaignTarget, error) {
+	var ct campaign.CampaignTarget
+	err := r.db.
+		Where("campaign_id = ? AND token = ?", campaignID, token).
+		First(&ct).Error
+	if err != nil {
+		return nil, err
+	}
+	return &ct, nil
+}
+
+func (r *CampaignRepository) MarkCampaignTargetOpened(campaignTargetID int64, resultID int64, ip string, userAgent string, openedAt time.Time) error {
+	return r.db.Model(&campaign.CampaignTarget{}).
+		Where("id = ?", campaignTargetID).
+		Updates(map[string]interface{}{
+			"result_id":  gorm.Expr("CASE WHEN result_id IS NULL THEN ? ELSE result_id END", resultID),
+			"status":     gorm.Expr("CASE WHEN status = 'pending' THEN 'sent' ELSE status END"),
+			"opened_at":  gorm.Expr("COALESCE(opened_at, ?)", openedAt),
+			"clicked_at": gorm.Expr("COALESCE(clicked_at, ?)", openedAt),
+			"ip":         ip,
+			"user_agent": userAgent,
+			"updated_at": time.Now(),
+		}).Error
+}
+
+func (r *CampaignRepository) MarkCampaignTargetSubmitted(campaignTargetID int64, submittedAt time.Time) error {
+	return r.db.Model(&campaign.CampaignTarget{}).
+		Where("id = ?", campaignTargetID).
+		Updates(map[string]interface{}{
+			"submitted_at": gorm.Expr("COALESCE(submitted_at, ?)", submittedAt),
+			"updated_at":   time.Now(),
+		}).Error
 }
 
 func (r *CampaignRepository) Delete(id int64, userId int64) error {

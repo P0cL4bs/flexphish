@@ -7,7 +7,7 @@ import (
 )
 
 type SessionService interface {
-	Resolve(w http.ResponseWriter, r *http.Request, campaignId int64) (*result.Result, error)
+	Resolve(w http.ResponseWriter, r *http.Request, campaignId int64, campaignToken string) (*result.Result, error)
 	SetTestMode(enabled bool)
 }
 

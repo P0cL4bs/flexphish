@@ -39,12 +39,13 @@ func Get() *koanf.Koanf {
 }
 
 type Config struct {
-	Server            ServerConfig   `yaml:"server" json:"server"`
-	Session           SessionConfig  `yaml:"session" json:"session"`
-	Campaign          CampaignConfig `yaml:"campaign" json:"campaign"`
-	Security          SecurityConfig `yaml:"security" json:"security"`
-	TemplateDir       string         `yaml:"template_dir" json:"template_dir"`
-	TemplateAssetsDir string         `yaml:"template_assets_dir" json:"template_assets_dir"`
+	Server            ServerConfig         `yaml:"server" json:"server"`
+	Session           SessionConfig        `yaml:"session" json:"session"`
+	Campaign          CampaignConfig       `yaml:"campaign" json:"campaign"`
+	EmailScheduler    EmailSchedulerConfig `yaml:"email_scheduler" json:"email_scheduler"`
+	Security          SecurityConfig       `yaml:"security" json:"security"`
+	TemplateDir       string               `yaml:"template_dir" json:"template_dir"`
+	TemplateAssetsDir string               `yaml:"template_assets_dir" json:"template_assets_dir"`
 }
 
 type ServerConfig struct {
@@ -65,6 +66,15 @@ type SessionConfig struct {
 type CampaignConfig struct {
 	BaseDomain    string `yaml:"base_domain" json:"base_domain"`
 	SubdomainMode bool   `yaml:"subdomain_mode" json:"subdomain_mode"`
+}
+
+type EmailSchedulerConfig struct {
+	Enabled              bool `yaml:"enabled" json:"enabled"`
+	PollIntervalSeconds  int  `yaml:"poll_interval_seconds" json:"poll_interval_seconds"`
+	EmailsPerMinute      int  `yaml:"emails_per_minute" json:"emails_per_minute"`
+	BatchSize            int  `yaml:"batch_size" json:"batch_size"`
+	BatchPauseMS         int  `yaml:"batch_pause_ms" json:"batch_pause_ms"`
+	MaxParallelCampaigns int  `yaml:"max_parallel_campaigns" json:"max_parallel_campaigns"`
 }
 
 type SecurityConfig struct {

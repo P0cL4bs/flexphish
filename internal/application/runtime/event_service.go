@@ -107,6 +107,10 @@ func (s *eventService) RegisterStepSubmit(
 		return err
 	}
 
+	if res.CampaignTargetId != nil {
+		_ = s.campaignRepo.MarkCampaignTargetSubmitted(*res.CampaignTargetId, time.Now())
+	}
+
 	_ = s.campaignRepo.IncrementClicked(campaignId)
 	_ = s.campaignRepo.IncrementSubmitted(campaignId)
 

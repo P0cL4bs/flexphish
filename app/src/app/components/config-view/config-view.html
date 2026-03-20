@@ -95,6 +95,51 @@
             </div>
         </div>
 
+        <!-- EMAIL SCHEDULER -->
+        <div class="card bg-base-100 mb-6 border border-base-300 ">
+            <div class="card-body">
+
+                <h2 class="card-title">Email Scheduler</h2>
+
+                <label class="label cursor-pointer justify-between">
+                    <span class="label-text">Enable Scheduler</span>
+                    <input type="checkbox" class="toggle toggle-secondary"
+                        [(ngModel)]="config.email_scheduler.enabled">
+                </label>
+
+                <label class="label">
+                    <span class="label-text">Poll Interval (seconds)</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" type="number" min="1"
+                    [(ngModel)]="config.email_scheduler.poll_interval_seconds">
+
+                <label class="label">
+                    <span class="label-text">Emails Per Minute</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" type="number" min="1"
+                    [(ngModel)]="config.email_scheduler.emails_per_minute">
+
+                <label class="label">
+                    <span class="label-text">Batch Size</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" type="number" min="1"
+                    [(ngModel)]="config.email_scheduler.batch_size">
+
+                <label class="label">
+                    <span class="label-text">Pause Between Batches (ms)</span>
+                </label>
+                <input class="input input-bordered w-full mb-3" type="number" min="0"
+                    [(ngModel)]="config.email_scheduler.batch_pause_ms">
+
+                <label class="label">
+                    <span class="label-text">Max Parallel Campaigns</span>
+                </label>
+                <input class="input input-bordered w-full" type="number" min="1"
+                    [(ngModel)]="config.email_scheduler.max_parallel_campaigns">
+
+            </div>
+        </div>
+
         <!-- SECURITY -->
         <div class="card bg-base-100 mb-6 border border-base-300 ">
             <div class="card-body">
