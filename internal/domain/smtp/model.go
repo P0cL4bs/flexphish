@@ -5,7 +5,8 @@ import "time"
 type SMTPProfile struct {
 	Id int64 `gorm:"primaryKey" json:"id"`
 
-	UserId int64 `gorm:"index;not null" json:"-"`
+	UserId   *int64 `gorm:"index" json:"user_id,omitempty"`
+	IsGlobal bool   `gorm:"default:false" json:"is_global"`
 
 	Name string `gorm:"not null" json:"name"`
 

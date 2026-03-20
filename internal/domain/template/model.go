@@ -84,9 +84,9 @@ type TemplateMetadata struct {
 type EmailTemplate struct {
 	Id int64 `gorm:"primaryKey" json:"id"`
 
-	UserId int64 `gorm:"index;not null" json:"-"`
-
-	Name string `gorm:"not null" json:"name"`
+	UserId   *int64 `gorm:"index" json:"user_id,omitempty"`
+	IsGlobal bool   `gorm:"default:false" json:"is_global"`
+	Name     string `gorm:"not null" json:"name"`
 
 	Subject string `gorm:"not null" json:"subject"`
 	Body    string `gorm:"type:text;not null" json:"body"`

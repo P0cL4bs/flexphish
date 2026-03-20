@@ -1,0 +1,178 @@
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-2xl font-bold">SMTP Servers</h2>
+  <button class="btn btn-primary" (click)="openCreateDialog()">+ New SMTP Server</button>
+</div>
+
+<div class="card bg-base-100 border border-base-300">
+  <div class="card-body gap-4">
+    <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+      <input type="text" class="input input-bordered input-sm w-full md:w-96"
+        placeholder="Search by name, host, username..." [(ngModel)]="search" (input)="applyFilter()" />
+
+      <span class="badge badge-soft badge-secondary">{{ filteredProfiles.length }} profiles</span>
+    </div>
+
+    <div class="overflow-x-auto border border-base-300 rounded-box">
+      <table class="table table-zebra">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Host</th>
+            <th>Port</th>
+            <th>Username</th>
+            <th>Scope</th>
+            <th>Status</th>
+            <th>From</th>
+            <th class="w-28">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="8" class="text-center py-10">
+              <span class="loading loading-spinner loading-md"></span>
+            </td>
+          </tr>
+
+          <tr *ngFor="let profile of filteredProfiles">
+            <td class="font-medium">{{ profile.name }}</td>
+            <td>{{ profile.host }}</td>
+            <td>{{ profile.port }}</td>
+            <td>{{ profile.username }}</td>
+            <td>
+              <span class="badge badge-soft" [class.badge-primary]="profile.is_global"
+                [class.badge-secondary]="!profile.is_global">
+                {{ profile.is_global ? 'global' : 'local' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-sm" [class.badge-success]="profile.is_active"
+                [class.badge-warning]="!profile.is_active">
+                {{ profile.is_active ? 'active' : 'inactive' }}
+              </span>
+            </td>
+            <td>
+              <span *ngIf="profile.from_email || profile.from_name; else noSender">
+                {{ profile.from_name || '-' }} <span class="opacity-70">{{ profile.from_email || '' }}</span>
+              </span>
+              <ng-template #noSender>-</ng-template>
+            </td>
+            <td>
+              <div class="flex items-center gap-1">
+                <button class="btn btn-soft " (click)="openEditDialog(profile)"><lucide-icon name="square-pen"
+                    size="16"></lucide-icon> Edit</button>
+                <button class="btn btn-soft text-error" (click)="deleteProfile(profile)"> <lucide-icon name="trash-2"
+                    size="16"></lucide-icon> Delete</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && filteredProfiles.length === 0">
+            <td colspan="8" class="text-center py-10 opacity-70">No SMTP servers found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<dialog #createDialog class="modal">
+  <div class="modal-box max-w-3xl">
+    <h3 class="font-bold text-lg mb-4">Create SMTP Server</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="label"><span class="label-text">Name *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Host *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.host" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Port *</span></label>
+        <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Username *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.username" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Password *</span></label>
+        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">From Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.from_name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">From Email</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.from_email" />
+      </div>
+      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Global SMTP server</span>
+        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
+      </label>
+      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Active</span>
+        <input type="checkbox" class="toggle toggle-success" [(ngModel)]="form.is_active" />
+      </label>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeCreateDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="creating" [disabled]="creating"
+        (click)="createProfile()">Create</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #editDialog class="modal">
+  <div class="modal-box max-w-3xl">
+    <h3 class="font-bold text-lg mb-4">Edit SMTP Server</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="label"><span class="label-text">Name *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Host *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.host" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Port *</span></label>
+        <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Username *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.username" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Password (leave empty to keep current)</span></label>
+        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">From Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.from_name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">From Email</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.from_email" />
+      </div>
+      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Global SMTP server</span>
+        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
+      </label>
+      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Active</span>
+        <input type="checkbox" class="toggle toggle-success" [(ngModel)]="form.is_active" />
+      </label>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeEditDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="saving" [disabled]="saving"
+        (click)="updateProfile()">Save</button>
+    </div>
+  </div>
+</dialog>

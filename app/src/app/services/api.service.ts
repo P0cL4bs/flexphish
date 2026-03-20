@@ -18,6 +18,7 @@ import { PaginatedResponse } from '../models/paginated-response.model';
 import { Config } from '../models/config.model';
 import { CampaignAnalytics } from '../models/campaign-analytics.model';
 import { CreateGroupRequest, Group, GroupTarget, GroupTargetPayload, UpdateGroupRequest } from '../models/group.model';
+import { SMTPProfile, SMTPProfilePayload } from '../models/smtp.model';
 
 
 interface JWTPayload {
@@ -673,6 +674,52 @@ export class ApiService {
     public deleteGroupTarget(groupId: number, targetId: number): Observable<void> {
         return this.http.delete<void>(
             `${this.settings.URL()}/groups/${groupId}/targets/${targetId}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getSMTPProfiles(): Observable<SMTPProfile[]> {
+        return this.http.get<SMTPProfile[]>(
+            `${this.settings.URL()}/smtp-profiles`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public createSMTPProfile(payload: SMTPProfilePayload): Observable<SMTPProfile> {
+        return this.http.post<SMTPProfile>(
+            `${this.settings.URL()}/smtp-profiles`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateSMTPProfile(id: number, payload: SMTPProfilePayload): Observable<SMTPProfile> {
+        return this.http.put<SMTPProfile>(
+            `${this.settings.URL()}/smtp-profiles/${id}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteSMTPProfile(id: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/smtp-profiles/${id}`,
             { headers: this.creds.headers }
         ).pipe(
             catchError((error: HttpErrorResponse) => {
