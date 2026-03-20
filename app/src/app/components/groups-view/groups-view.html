@@ -26,42 +26,56 @@
 
         <div *ngIf="!loadingGroups" class="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
           <div *ngFor="let group of filteredGroups" role="button" tabindex="0"
-            class="rounded-box border transition-all duration-200 cursor-pointer p-3 hover:bg-base-200/70"
+            class="rounded-box border transition-all duration-200 cursor-pointer p-4 hover:bg-base-200/70"
             [class.border-primary]="selectedGroup?.id === group.id" [class.bg-base-200]="selectedGroup?.id === group.id"
             [class.shadow-sm]="selectedGroup?.id === group.id" [class.border-base-300]="selectedGroup?.id !== group.id"
             (click)="selectGroup(group)" (keydown.enter)="selectGroup(group)">
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="font-semibold leading-tight break-words">{{ group.name }}</p>
-                <div class="mt-4 flex items-center gap-2">
-                  <div class="indicator">
-                    <span class="indicator-item badge badge-xs badge-secondary">
-                      {{ getTargetCount(group) }}
+              <div class="flex items-start gap-3 min-w-0">
+                <div class="avatar avatar-placeholder shrink-0">
+                  <div class="bg-neutral text-neutral-content w-12 rounded">
+                    <span class=" font-semibold">{{ getGroupInitials(group.name) }}</span>
+                  </div>
+                </div>
+
+                <div class="min-w-0">
+                  <p class="font-semibold text-base leading-tight break-words">{{ group.name }}</p>
+
+                  <span class="badge badge-soft badge-sm mt-2" [class.badge-primary]="group.is_global"
+                    [class.badge-secondary]="!group.is_global">
+                    <span class="h-1.5 w-1.5 rounded-full" [class.bg-primary]="group.is_global"
+                      [class.bg-secondary]="!group.is_global"></span>
+                    {{ group.is_global ? 'Global group' : 'Private group' }}
+                  </span>
+
+                  <div class="mt-3 flex flex-wrap items-center gap-2 text-sm opacity-80">
+                    <span class="inline-flex items-center gap-1">
+                      <lucide-icon name="users" size="14"></lucide-icon>
+                      {{ getTargetCount(group) }} targets
                     </span>
-                    <div class="inline-flex items-center gap-1 rounded-box border border-base-300 px-2 py-1 text-xs">
-                      <lucide-icon name="users" size="12"></lucide-icon>
-                      <span class="opacity-80">Targets</span>
-                    </div>
                   </div>
                 </div>
               </div>
 
-              <div class="flex flex-col items-end gap-2 shrink-0">
-                <span class="badge badge-sm badge-soft" [class.badge-primary]="group.is_global"
-                  [class.badge-secondary]="!group.is_global">
-                  {{ group.is_global ? 'global' : 'private' }}
-                </span>
-
-                <div class="flex items-center gap-1">
-                  <button class="btn btn-soft btn-sm" (click)="openEditGroupDialog(group, $event)"
-                    aria-label="Edit group">
-                    <lucide-icon name="square-pen" size="16"></lucide-icon>
-                  </button>
-                  <button class="btn btn-soft btn-sm text-error" (click)="deleteGroup(group, $event)"
-                    aria-label="Delete group">
-                    <lucide-icon name="trash-2" size="16"></lucide-icon>
-                  </button>
-                </div>
+              <div class="dropdown dropdown-end shrink-0" (click)="$event.stopPropagation()">
+                <button tabindex="0" class="btn btn-soft btn-sm" aria-label="Group actions">
+                  <lucide-icon name="ellipsis-vertical" size="16"></lucide-icon>
+                </button>
+                <ul tabindex="0"
+                  class="dropdown-content menu bg-base-100 rounded-box z-10 w-40 p-2 shadow-lg border border-base-300">
+                  <li>
+                    <button (click)="openEditGroupDialog(group, $event)">
+                      <lucide-icon name="square-pen" size="14"></lucide-icon>
+                      Edit
+                    </button>
+                  </li>
+                  <li>
+                    <button class="text-error" (click)="deleteGroup(group, $event)">
+                      <lucide-icon name="trash-2" size="14"></lucide-icon>
+                      Delete
+                    </button>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>

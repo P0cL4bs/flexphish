@@ -388,6 +388,20 @@ export class GroupsView implements OnInit {
     return group.targets?.length || 0
   }
 
+  getGroupInitials(name: string) {
+    const cleanName = (name || '').trim()
+    if (!cleanName) {
+      return 'GR'
+    }
+
+    const parts = cleanName.split(/\s+/).filter(Boolean)
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase()
+    }
+
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+
   private normalizeTargetForm(input: TargetForm): GroupTargetPayload {
     return {
       first_name: (input.first_name || '').trim(),
