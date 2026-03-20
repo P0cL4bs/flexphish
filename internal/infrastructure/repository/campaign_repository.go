@@ -357,16 +357,16 @@ func periodExpression(period string) string {
 	switch period {
 
 	case "day":
-		return "DATE(events.created_at)"
+		return "strftime('%Y-%m-%dT%H:00:00', events.created_at)"
 
 	case "week":
-		return "DATE(events.created_at, 'weekday 1', '-7 days')"
+		return "DATE(events.created_at)"
 
 	case "month":
-		return "strftime('%Y-%m-01', events.created_at)"
+		return "DATE(events.created_at)"
 
 	case "year":
-		return "strftime('%Y-01-01', events.created_at)"
+		return "strftime('%Y-%m', events.created_at)"
 
 	default:
 		return "DATE(events.created_at)"
@@ -382,13 +382,13 @@ func periodFilter(period string) (string, []interface{}) {
 		return "date(events.created_at) = date('now')", nil
 
 	case "week":
-		return "date(events.created_at) >= date('now', '-7 days')", nil
+		return "date(events.created_at) >= date('now', '-6 days')", nil
 
 	case "month":
-		return "date(events.created_at) >= date('now', '-1 month')", nil
+		return "date(events.created_at) >= date('now', 'start of month')", nil
 
 	case "year":
-		return "date(events.created_at) >= date('now', '-1 year')", nil
+		return "date(events.created_at) >= date('now', 'start of year')", nil
 
 	default:
 		return "", nil

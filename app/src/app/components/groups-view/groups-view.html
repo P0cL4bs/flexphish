@@ -14,17 +14,6 @@
           <span class="badge badge-soft">{{ filteredGroups.length }}</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-2 text-sm">
-          <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
-            <p class="text-xs uppercase tracking-wide opacity-60">Total</p>
-            <p class="text-lg font-semibold leading-tight">{{ groups.length }}</p>
-          </div>
-          <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
-            <p class="text-xs uppercase tracking-wide opacity-60">Visible</p>
-            <p class="text-lg font-semibold leading-tight">{{ filteredGroups.length }}</p>
-          </div>
-        </div>
-
         <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
           <lucide-icon name="search" size="18"></lucide-icon>
           <input type="text" class="grow" placeholder="Search group by name..." [(ngModel)]="groupsSearch"
