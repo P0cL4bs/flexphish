@@ -7,8 +7,11 @@
     <!-- Filters -->
     <div class="flex flex-col md:flex-row gap-4 mb-6">
 
-        <input type="text" placeholder="Search by name..." [(ngModel)]="search" (input)="applyFilters()"
-            class="input input-bordered w-full md:w-80" />
+        <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+            <lucide-icon name="search" size="18"></lucide-icon>
+            <input type="text" class="grow" placeholder="Search by name..." [(ngModel)]="search"
+                (input)="applyFilters()" />
+        </label>
 
         <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="select select-bordered w-full md:w-52">
 

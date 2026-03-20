@@ -23,11 +23,12 @@ import { Group } from 'src/app/models/group.model';
 import { SMTPProfile } from 'src/app/models/smtp.model';
 import { EmailTemplate } from 'src/app/models/email-template.model';
 import { CampaignTarget } from 'src/app/models/campaign-target.model';
+import { LucideAngularModule } from 'lucide-angular';
 
 
 @Component({
   selector: 'app-campaign-detail-view',
-  imports: [CommonModule, RouterModule, FormsModule, FontAwesomeModule],
+  imports: [CommonModule, RouterModule, FormsModule, FontAwesomeModule, LucideAngularModule],
   templateUrl: './campaign-detail-view.html',
   styleUrl: './campaign-detail-view.css'
 })

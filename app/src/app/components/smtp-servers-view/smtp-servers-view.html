@@ -6,8 +6,11 @@
 <div class="card bg-base-100 border border-base-300">
   <div class="card-body gap-4">
     <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-      <input type="text" class="input input-bordered input-sm w-full md:w-96"
-        placeholder="Search by name, host, username..." [(ngModel)]="search" (input)="applyFilter()" />
+      <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+        <lucide-icon name="search" size="18"></lucide-icon>
+        <input type="text" class="grow" placeholder="Search by name, host, username..." [(ngModel)]="search"
+          (input)="applyFilter()" />
+      </label>
 
       <span class="badge badge-soft badge-secondary">{{ filteredProfiles.length }} profiles</span>
     </div>
@@ -41,7 +44,7 @@
             <td>
               <span class="badge badge-soft" [class.badge-primary]="profile.is_global"
                 [class.badge-secondary]="!profile.is_global">
-                {{ profile.is_global ? 'global' : 'local' }}
+                {{ profile.is_global ? 'global' : 'private' }}
               </span>
             </td>
             <td>

@@ -1,49 +1,82 @@
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-2xl font-bold">Groups</h2>
+<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
+  <div>
+    <h2 class="text-2xl font-bold">Groups</h2>
+    <p class="text-sm opacity-70">Manage groups and targets in one place</p>
+  </div>
   <button class="btn btn-primary" (click)="openCreateGroupDialog()">+ New Group</button>
 </div>
 
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
   <section class="xl:col-span-4">
-    <div class="card bg-base-100 border border-base-300">
-      <div class="card-body gap-3">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-4">
         <div class="flex items-center justify-between">
           <h3 class="card-title text-base">Your Groups</h3>
           <span class="badge badge-soft">{{ filteredGroups.length }}</span>
         </div>
 
-        <input type="text" class="input input-bordered input-sm w-full" placeholder="Search group..."
-          [(ngModel)]="groupsSearch" (input)="applyGroupFilter()" />
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
+            <p class="text-xs uppercase tracking-wide opacity-60">Total</p>
+            <p class="text-lg font-semibold leading-tight">{{ groups.length }}</p>
+          </div>
+          <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
+            <p class="text-xs uppercase tracking-wide opacity-60">Visible</p>
+            <p class="text-lg font-semibold leading-tight">{{ filteredGroups.length }}</p>
+          </div>
+        </div>
+
+        <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+          <lucide-icon name="search" size="18"></lucide-icon>
+          <input type="text" class="grow" placeholder="Search group by name..." [(ngModel)]="groupsSearch"
+            (input)="applyGroupFilter()" />
+        </label>
 
         <div *ngIf="loadingGroups" class="py-10 text-center">
           <span class="loading loading-spinner loading-md"></span>
         </div>
 
         <div *ngIf="!loadingGroups" class="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
-          <button *ngFor="let group of filteredGroups" type="button"
-            class="w-full text-left p-3 rounded-box border transition-all"
+          <div *ngFor="let group of filteredGroups" role="button" tabindex="0"
+            class="rounded-box border transition-all duration-200 cursor-pointer p-3 hover:bg-base-200/70"
             [class.border-primary]="selectedGroup?.id === group.id" [class.bg-base-200]="selectedGroup?.id === group.id"
-            [class.border-base-300]="selectedGroup?.id !== group.id" (click)="selectGroup(group)">
+            [class.shadow-sm]="selectedGroup?.id === group.id" [class.border-base-300]="selectedGroup?.id !== group.id"
+            (click)="selectGroup(group)" (keydown.enter)="selectGroup(group)">
             <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="font-semibold leading-tight">{{ group.name }}</p>
-                <div class="mt-2 flex items-center gap-2">
-                  <span class="badge badge-sm" [class.badge-accent]="group.is_global"
-                    [class.badge-primary]="!group.is_global">
-                    {{ group.is_global ? 'global' : 'private' }}
-                  </span>
-                  <span class="badge badge-sm badge-soft badge-secondary">{{ getTargetCount(group) }} targets</span>
+              <div class="min-w-0">
+                <p class="font-semibold leading-tight break-words">{{ group.name }}</p>
+                <div class="mt-4 flex items-center gap-2">
+                  <div class="indicator">
+                    <span class="indicator-item badge badge-xs badge-secondary">
+                      {{ getTargetCount(group) }}
+                    </span>
+                    <div class="inline-flex items-center gap-1 rounded-box border border-base-300 px-2 py-1 text-xs">
+                      <lucide-icon name="users" size="12"></lucide-icon>
+                      <span class="opacity-80">Targets</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div class="flex items-center gap-1">
-                <button class="btn btn-soft " (click)="openEditGroupDialog(group, $event)"><lucide-icon
-                    name="square-pen" size="16"></lucide-icon> Edit</button>
-                <button class="btn btn-soft text-error" (click)="deleteGroup(group, $event)"><lucide-icon name="trash-2"
-                    size="16"></lucide-icon> Delete</button>
+              <div class="flex flex-col items-end gap-2 shrink-0">
+                <span class="badge badge-sm badge-soft" [class.badge-primary]="group.is_global"
+                  [class.badge-secondary]="!group.is_global">
+                  {{ group.is_global ? 'global' : 'private' }}
+                </span>
+
+                <div class="flex items-center gap-1">
+                  <button class="btn btn-soft btn-sm" (click)="openEditGroupDialog(group, $event)"
+                    aria-label="Edit group">
+                    <lucide-icon name="square-pen" size="16"></lucide-icon>
+                  </button>
+                  <button class="btn btn-soft btn-sm text-error" (click)="deleteGroup(group, $event)"
+                    aria-label="Delete group">
+                    <lucide-icon name="trash-2" size="16"></lucide-icon>
+                  </button>
+                </div>
               </div>
             </div>
-          </button>
+          </div>
 
           <div *ngIf="filteredGroups.length === 0"
             class="p-6 border border-dashed border-base-300 rounded-box text-center opacity-70">
@@ -55,8 +88,8 @@
   </section>
 
   <section class="xl:col-span-8">
-    <div class="card bg-base-100 border border-base-300">
-      <div class="card-body">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-4">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h3 class="card-title">
@@ -71,8 +104,29 @@
           </button>
         </div>
 
-        <input type="text" class="input input-bordered input-sm w-full md:w-80" placeholder="Search target..."
-          [(ngModel)]="targetsSearch" (input)="applyTargetFilter()" [disabled]="!selectedGroup" />
+        <div *ngIf="selectedGroup"
+          class="stats stats-vertical sm:stats-horizontal bg-base-100 border border-base-300 shadow-sm">
+          <div class="stat py-3">
+            <div class="stat-figure text-secondary">
+              <lucide-icon name="users" size="18"></lucide-icon>
+            </div>
+            <div class="stat-title text-xs uppercase tracking-wide">Total targets</div>
+            <div class="stat-value text-2xl">{{ getTargetCount(selectedGroup) }}</div>
+          </div>
+          <div class="stat py-3">
+            <div class="stat-figure text-primary">
+              <lucide-icon name="search" size="18"></lucide-icon>
+            </div>
+            <div class="stat-title text-xs uppercase tracking-wide">Showing</div>
+            <div class="stat-value text-2xl">{{ filteredTargets.length }}</div>
+          </div>
+        </div>
+
+        <label class="input input-bordered flex items-center gap-2 w-full max-w-sm" [class.input-disabled]="!selectedGroup">
+          <lucide-icon name="search" size="18"></lucide-icon>
+          <input type="text" class="grow" placeholder="Search target..." [(ngModel)]="targetsSearch"
+            (input)="applyTargetFilter()" [disabled]="!selectedGroup" />
+        </label>
 
         <div *ngIf="!selectedGroup"
           class="p-12 border border-dashed border-base-300 rounded-box text-center opacity-70">
@@ -83,10 +137,10 @@
           <table class="table table-zebra">
             <thead>
               <tr>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Email</th>
-                <th>Position</th>
+                <th class="bg-base-200/70">First Name</th>
+                <th class="bg-base-200/70">Last Name</th>
+                <th class="bg-base-200/70">Email</th>
+                <th class="bg-base-200/70">Position</th>
                 <th class="w-28">Actions</th>
               </tr>
             </thead>
@@ -104,10 +158,13 @@
                 <td>{{ target.position || '-' }}</td>
                 <td>
                   <div class="flex items-center gap-1">
-                    <button class="btn btn-soft" (click)="openEditTargetDialog(target)"><lucide-icon name="square-pen"
-                        size="16"></lucide-icon> Edit</button>
-                    <button class="btn btn-soft text-error" (click)="deleteTarget(target)"><lucide-icon name="trash-2"
-                        size="16"></lucide-icon> Delete</button>
+                    <button class="btn btn-soft btn-sm" (click)="openEditTargetDialog(target)" aria-label="Edit target">
+                      <lucide-icon name="square-pen" size="16"></lucide-icon>
+                    </button>
+                    <button class="btn btn-soft btn-sm text-error" (click)="deleteTarget(target)"
+                      aria-label="Delete target">
+                      <lucide-icon name="trash-2" size="16"></lucide-icon>
+                    </button>
                   </div>
                 </td>
               </tr>
