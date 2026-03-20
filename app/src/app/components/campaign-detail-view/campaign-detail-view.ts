@@ -71,6 +71,7 @@ export class CampaignDetailView {
   emailTemplates: EmailTemplate[] = [];
   loadingEmailTemplates = false;
   eventSearchTerm: string = '';
+  dispatchSearchTerm: string = '';
 
   config!: Config;
 
@@ -227,6 +228,37 @@ export class CampaignDetailView {
 
   getCampaignTargets(): CampaignTarget[] {
     return this.campaign?.campaign_targets || [];
+  }
+
+  getFilteredCampaignTargets(): CampaignTarget[] {
+    const targets = this.getCampaignTargets();
+    const term = this.dispatchSearchTerm.trim().toLowerCase();
+
+    if (!term) {
+      return targets;
+    }
+
+    return targets.filter(target => {
+      const fullName = this.getTargetDisplayName(target).toLowerCase();
+      const email = (target.target?.email || '').toLowerCase();
+      const position = (target.target?.position || '').toLowerCase();
+      const status = (target.status || '').toLowerCase();
+      const token = (target.token || '').toLowerCase();
+      const interaction = this.getTargetInteractionLabel(target).toLowerCase();
+      const resultStatus = (target.result?.status || '').toLowerCase();
+      const sessionID = (target.result?.session_id || '').toLowerCase();
+
+      return (
+        fullName.includes(term) ||
+        email.includes(term) ||
+        position.includes(term) ||
+        status.includes(term) ||
+        token.includes(term) ||
+        interaction.includes(term) ||
+        resultStatus.includes(term) ||
+        sessionID.includes(term)
+      );
+    });
   }
 
   getExpectedTargetsCount(): number {
