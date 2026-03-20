@@ -119,6 +119,12 @@
   .card:has(> :checked) {
     outline: none !important;
   }
+
+  :is(.modal.modal-open, .modal[open], .modal:target) .modal-box {
+    translate: 0 0;
+    opacity: 1;
+  }
+
 }
 
 

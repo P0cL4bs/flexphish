@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { html } from '@codemirror/lang-html'
 import { CodeEditor } from '@acrodata/code-editor'
 import { EmailTemplate, EmailTemplatePayload } from 'src/app/models/email-template.model'
@@ -58,6 +59,7 @@ export class EmailTemplatesView implements OnInit {
 
   templates: EmailTemplate[] = []
   filteredTemplates: EmailTemplate[] = []
+  private previewSrcCache = new Map<string, SafeResourceUrl>()
   search = ''
   loading = false
   creating = false
@@ -68,8 +70,16 @@ export class EmailTemplatesView implements OnInit {
 
   @ViewChild('createDialog') createDialog!: ElementRef<HTMLDialogElement>
   @ViewChild('editDialog') editDialog!: ElementRef<HTMLDialogElement>
+  @ViewChild('createBodyEditor') createBodyEditor?: CodeEditor
+  @ViewChild('editBodyEditor') editBodyEditor?: CodeEditor
+  @ViewChild('createSubjectInput') createSubjectInput?: ElementRef<HTMLInputElement>
+  @ViewChild('editSubjectInput') editSubjectInput?: ElementRef<HTMLInputElement>
 
-  constructor(private api: ApiService, private toast: ToastService) { }
+  constructor(
+    private api: ApiService,
+    private toast: ToastService,
+    private sanitizer: DomSanitizer
+  ) { }
 
   ngOnInit(): void {
     this.loadTemplates()
@@ -194,14 +204,64 @@ export class EmailTemplatesView implements OnInit {
     })
   }
 
-  insertIntoBody(token: string) {
+  insertIntoBody(token: string, context: 'create' | 'edit', event?: Event) {
+    event?.preventDefault()
+    event?.stopPropagation()
+
+    const editor = context === 'create' ? this.createBodyEditor : this.editBodyEditor
+    const view = editor?.view
+    if (view) {
+      const selection = view.state.selection.main
+      view.dispatch({
+        changes: { from: selection.from, to: selection.to, insert: token },
+        selection: { anchor: selection.from + token.length }
+      })
+      this.form = {
+        ...this.form,
+        body: view.state.doc.toString()
+      }
+      view.focus()
+      return
+    }
+
     const current = this.form.body || ''
-    this.form.body = `${current}${current ? '\n' : ''}${token}`
+    this.form = {
+      ...this.form,
+      body: `${current}${token}`
+    }
   }
 
-  insertIntoSubject(token: string) {
+  insertIntoSubject(token: string, context: 'create' | 'edit', event?: Event) {
+    event?.preventDefault()
+    event?.stopPropagation()
+
+    const inputRef = context === 'create' ? this.createSubjectInput : this.editSubjectInput
+    const subjectInput = inputRef?.nativeElement
+
+    if (subjectInput) {
+      const current = this.form.subject || ''
+      const from = subjectInput.selectionStart ?? current.length
+      const to = subjectInput.selectionEnd ?? current.length
+      const next = `${current.slice(0, from)}${token}${current.slice(to)}`
+      const nextCursor = from + token.length
+
+      this.form = {
+        ...this.form,
+        subject: next
+      }
+
+      requestAnimationFrame(() => {
+        subjectInput.focus()
+        subjectInput.setSelectionRange(nextCursor, nextCursor)
+      })
+      return
+    }
+
     const current = this.form.subject || ''
-    this.form.subject = `${current}${current ? ' ' : ''}${token}`
+    this.form = {
+      ...this.form,
+      subject: `${current}${token}`
+    }
   }
 
   get renderedSubject(): string {
@@ -210,6 +270,30 @@ export class EmailTemplatesView implements OnInit {
 
   get renderedBody(): string {
     return this.applyPlaceholders(this.form.body || '')
+  }
+
+  get renderedBodyDoc(): string {
+    return this.buildPreviewDocument(this.renderedBody)
+  }
+
+  get renderedBodyPreviewSrc(): SafeResourceUrl {
+    return this.toPreviewSrc(this.renderedBodyDoc)
+  }
+
+  renderTemplateSubject(template: EmailTemplate): string {
+    return this.applyPlaceholders(template?.subject || '')
+  }
+
+  renderTemplateBody(template: EmailTemplate): string {
+    return this.applyPlaceholders(template?.body || '')
+  }
+
+  renderTemplateBodyDoc(template: EmailTemplate): string {
+    return this.buildPreviewDocument(this.renderTemplateBody(template))
+  }
+
+  renderTemplatePreviewSrc(template: EmailTemplate): SafeResourceUrl {
+    return this.toPreviewSrc(this.renderTemplateBodyDoc(template))
   }
 
   private createEmptyForm(): EmailTemplateForm {
@@ -258,6 +342,50 @@ export class EmailTemplatesView implements OnInit {
     })
 
     return rendered
+  }
+
+  private buildPreviewDocument(content: string): string {
+    const trimmed = (content || '').trim()
+    const lower = trimmed.toLowerCase()
+
+    const isFullDocument =
+      lower.startsWith('<!doctype') ||
+      lower.includes('<html') ||
+      lower.includes('<head') ||
+      lower.includes('<body')
+
+    if (isFullDocument) {
+      return trimmed
+    }
+
+    return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html, body { margin: 0; padding: 0; background: #ffffff; color: #111827; font-family: Arial, sans-serif; }
+      body { padding: 12px; box-sizing: border-box; }
+      * { box-sizing: border-box; }
+      img { max-width: 100%; height: auto; }
+      a { color: #2563eb; }
+    </style>
+  </head>
+  <body>${trimmed}</body>
+</html>`
+  }
+
+  private toPreviewSrc(htmlDocument: string): SafeResourceUrl {
+    const document = htmlDocument || ''
+    const cached = this.previewSrcCache.get(document)
+    if (cached) {
+      return cached
+    }
+
+    const encoded = encodeURIComponent(document)
+    const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`data:text/html;charset=utf-8,${encoded}`)
+    this.previewSrcCache.set(document, safeUrl)
+    return safeUrl
   }
 
   private extractError(err: any, fallback: string): string {
