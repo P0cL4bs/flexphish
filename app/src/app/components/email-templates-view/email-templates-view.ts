@@ -20,6 +20,7 @@ type TargetPreviewData = {
   lastName: string
   email: string
   position: string
+  url: string
 }
 
 @Component({
@@ -35,14 +36,24 @@ export class EmailTemplatesView implements OnInit {
     { label: 'First Name', token: '{{FirstName}}' },
     { label: 'Last Name', token: '{{LastName}}' },
     { label: 'Email', token: '{{Email}}' },
-    { label: 'Position', token: '{{Position}}' }
+    { label: 'Position', token: '{{Position}}' },
+    { label: 'URL', token: '{{URL}}' }
   ]
+
+  get bodyPlaceholders() {
+    return this.placeholders
+  }
+
+  get subjectPlaceholders() {
+    return this.placeholders.filter((p) => p.token !== '{{URL}}')
+  }
 
   previewData: TargetPreviewData = {
     firstName: 'Ana',
     lastName: 'Silva',
     email: 'ana.silva@company.com',
-    position: 'Manager'
+    position: 'Manager',
+    url: 'https://campaign.example.com/login'
   }
 
   templates: EmailTemplate[] = []
@@ -237,7 +248,8 @@ export class EmailTemplatesView implements OnInit {
       '{{FirstName}}': this.previewData.firstName || '',
       '{{LastName}}': this.previewData.lastName || '',
       '{{Email}}': this.previewData.email || '',
-      '{{Position}}': this.previewData.position || ''
+      '{{Position}}': this.previewData.position || '',
+      '{{URL}}': this.previewData.url || ''
     }
 
     let rendered = content
