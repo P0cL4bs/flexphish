@@ -26,7 +26,7 @@
 
         <div *ngIf="!loadingGroups" class="space-y-2 max-h-[65vh] overflow-y-auto pr-4">
           <div *ngFor="let group of filteredGroups" role="button" tabindex="0"
-            class="rounded-box border transition-all duration-200 cursor-pointer p-4 hover:bg-base-200/70 border-2 "
+            class="card rounded-box border transition-all duration-200 cursor-pointer p-4 hover:bg-base-200/70 border-2 "
             [class.border-primary]="selectedGroup?.id === group.id" [class.bg-base-200]="selectedGroup?.id === group.id"
             [class.shadow-sm]="selectedGroup?.id === group.id" [class.border-base-300]="selectedGroup?.id !== group.id"
             (click)="selectGroup(group)" (keydown.enter)="selectGroup(group)">

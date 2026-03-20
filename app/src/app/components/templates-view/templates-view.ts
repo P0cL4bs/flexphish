@@ -140,7 +140,22 @@ export class TemplatesView implements OnInit {
     this.api.getTemplatesList().subscribe({
       next: (data) => {
         this.templates = data;
-        this.filteredTemplates = data
+        this.applyFilter()
+
+        const currentFilename = this.route.firstChild?.snapshot.paramMap.get('filename')
+        const hasCurrentRouteTemplate = !!currentFilename
+        const activeExists = this.activeTemplate
+          ? this.templates.some(t => t.filename === this.activeTemplate)
+          : false
+
+        if (!hasCurrentRouteTemplate && this.filteredTemplates.length > 0) {
+          this.selectTemplate(this.filteredTemplates[0])
+          return
+        }
+
+        if (hasCurrentRouteTemplate && !activeExists && this.filteredTemplates.length > 0) {
+          this.selectTemplate(this.filteredTemplates[0])
+        }
       },
       error: (err) => {
         console.error('Failed loading templates', err);
