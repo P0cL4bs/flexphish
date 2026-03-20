@@ -330,6 +330,105 @@
         </div>
 
     </div>
+
+    <div class="card bg-base-100 border border-base-300 shadow-sm mt-4 pt-2">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="card-title">
+                    Email Delivery
+                </h2>
+
+                <span *ngIf="isEmailDeliveryInProgress()" class="badge badge-warning gap-2">
+                    <span class="loading loading-spinner loading-xs"></span>
+                    Sending in background...
+                </span>
+            </div>
+
+            <div class="stats shadow w-full bg-base-100 mb-4 border border-base-300">
+                <div class="stat">
+                    <div class="stat-title">Targets</div>
+                    <div class="stat-value text-primary">{{ getExpectedTargetsCount() }}</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-title">Sent</div>
+                    <div class="stat-value text-success">{{ getCampaignTargetsSentCount() }}</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-title">Pending</div>
+                    <div class="stat-value text-warning">{{ getCampaignTargetsPendingCount() }}</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-title">Failed</div>
+                    <div class="stat-value text-error">{{ getCampaignTargetsFailedCount() }}</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-title">Opened</div>
+                    <div class="stat-value text-info">{{ getCampaignTargetsOpenedCount() }}</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-title">Clicked</div>
+                    <div class="stat-value text-accent">{{ getCampaignTargetsClickedCount() }}</div>
+                </div>
+            </div>
+
+            <div class="mt-2 mb-4 w-full">
+                <table class="table-xs md:table-sm table table-zebra w-full">
+                    <thead>
+                        <tr class="border-b-0">
+                            <th class="bg-base-300 rounded-s-box lg:py-2">Target</th>
+                            <th class="bg-base-300 lg:py-2">Email</th>
+                            <th class="bg-base-300 lg:py-2">Position</th>
+                            <th class="bg-base-300 lg:py-2">Status</th>
+                            <th class="bg-base-300 lg:py-2">Token</th>
+                            <th class="bg-base-300 lg:py-2">Sent At</th>
+                            <th class="bg-base-300 rounded-e-box lg:py-2">Submitted</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr *ngIf="getCampaignTargets().length === 0">
+                            <td colspan="7" class="text-center text-gray-500 py-4">
+                                No campaign targets yet.
+                            </td>
+                        </tr>
+
+                        <tr *ngFor="let target of getCampaignTargets()">
+                            <td class="font-semibold">
+                                {{ getTargetDisplayName(target) }}
+                            </td>
+                            <td>
+                                <span class="badge badge-soft badge-sm">{{ target.target?.email || '-' }}</span>
+                            </td>
+                            <td>
+                                {{ target.target?.position || '-' }}
+                            </td>
+                            <td>
+                                <span class="badge badge-soft badge-sm font-bold"
+                                    [ngClass]="getTargetStatusBadge(target.status)">
+                                    {{ target.status }}
+                                </span>
+                            </td>
+                            <td class="font-mono text-xs">
+                                {{ target.token | slice:0:12 }}...
+                            </td>
+                            <td>
+                                {{ target.email_sent_at ? (target.email_sent_at | date:'short') : '-' }}
+                            </td>
+                            <td>
+                                {{ target.submitted_at ? (target.submitted_at | date:'short') : '-' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="card bg-base-100 border border-base-300 shadow-sm mt-4 pt-2">
         <div class="card-body">
 
@@ -753,6 +852,24 @@
         </div>
 
     </div>
+</dialog>
+
+<dialog id="dev_mode_error_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg text-error">Email Sending Blocked</h3>
+
+        <p class="py-4">
+            {{ devModeErrorMessage }}
+        </p>
+
+        <div class="modal-action">
+            <button class="btn btn-error" (click)="closeDevModeErrorModal()">OK</button>
+        </div>
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
 </dialog>
 
 

@@ -1,5 +1,6 @@
 import { CampaignEvent } from "./campaign-event.model";
 import { CampaignResult } from "./campaign-result.model";
+import { CampaignTarget } from "./campaign-target.model";
 import { EmailTemplate } from "./email-template.model";
 import { Group } from "./group.model";
 import { SMTPProfile } from "./smtp.model";
@@ -31,6 +32,7 @@ export interface Campaign {
     smtp_profile?: SMTPProfile;
     email_template?: EmailTemplate;
     groups?: Group[];
+    campaign_targets?: CampaignTarget[];
 
     track_opens: boolean;
     track_clicks: boolean;

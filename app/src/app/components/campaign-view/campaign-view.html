@@ -46,6 +46,7 @@
                         <th class="bg-base-300 lg:py-2">Name</th>
                         <th class="bg-base-300 lg:py-2 whitespace-nowrap">Subdomain</th>
                         <th class="bg-base-300 lg:py-2">Status</th>
+                        <th class="bg-base-300 lg:py-2">Email Delivery</th>
                         <th class="bg-base-300 lg:py-2">Template</th>
                         <th class="bg-base-300 lg:py-2">Template Tags</th>
                         <th class="bg-base-300 lg:py-2">Launched At</th>
@@ -113,6 +114,12 @@
                             </td>
 
                             <td>
+                                <span class="badge badge-soft font-bold" [ngClass]="getEmailDeliveryBadgeClass(c)">
+                                    {{ getEmailDeliveryLabel(c) }}
+                                </span>
+                            </td>
+
+                            <td>
 
                                 <ng-container *ngIf="getTemplateById(c.template_id) as templ; else loading">
                                     <span
@@ -176,7 +183,7 @@
 
                         <!-- EXPANDED DETAILS -->
                         <tr *ngIf="expandedRow === c.id" class="mb-2 ">
-                            <td colspan="12" class="bg-base-200 p-6 w-full"> <!-- LOADING DETAILS -->
+                            <td colspan="13" class="bg-base-200 p-6 w-full"> <!-- LOADING DETAILS -->
                                 <div *ngIf="loadingDetail === c.id" class="text-center py-6"> <span
                                         class="loading loading-spinner loading-lg"></span> </div>
                                 <!-- DETAILS CONTENT -->

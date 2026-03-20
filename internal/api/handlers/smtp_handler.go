@@ -262,6 +262,10 @@ func (h *SMTPHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendSMTPTestMessage(host string, port int, username string, password string, from string, to string, msg []byte) error {
+	return sendSMTPMessage(host, port, username, password, from, []string{to}, msg)
+}
+
+func sendSMTPMessage(host string, port int, username string, password string, from string, to []string, msg []byte) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	auth := netsmtp.PlainAuth("", username, password, host)
 
@@ -291,8 +295,10 @@ func sendSMTPTestMessage(host string, port int, username string, password string
 		if err := client.Mail(from); err != nil {
 			return err
 		}
-		if err := client.Rcpt(to); err != nil {
-			return err
+		for _, recipient := range to {
+			if err := client.Rcpt(recipient); err != nil {
+				return err
+			}
 		}
 
 		writer, err := client.Data()
@@ -309,7 +315,7 @@ func sendSMTPTestMessage(host string, port int, username string, password string
 		return nil
 	}
 
-	if err := netsmtp.SendMail(addr, auth, from, []string{to}, msg); err == nil {
+	if err := netsmtp.SendMail(addr, auth, from, to, msg); err == nil {
 		return nil
 	}
 
@@ -341,8 +347,10 @@ func sendSMTPTestMessage(host string, port int, username string, password string
 	if err := client.Mail(from); err != nil {
 		return err
 	}
-	if err := client.Rcpt(to); err != nil {
-		return err
+	for _, recipient := range to {
+		if err := client.Rcpt(recipient); err != nil {
+			return err
+		}
 	}
 
 	writer, err := client.Data()

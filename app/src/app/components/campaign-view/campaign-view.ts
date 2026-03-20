@@ -12,6 +12,7 @@ import { ToastService } from 'src/app/services/toast.service';
 import { Group } from 'src/app/models/group.model';
 import { SMTPProfile } from 'src/app/models/smtp.model';
 import { EmailTemplate } from 'src/app/models/email-template.model';
+import { CampaignTarget } from 'src/app/models/campaign-target.model';
 
 @Component({
   selector: 'app-campaign-view',
@@ -400,6 +401,38 @@ export class CampaignView implements OnInit {
 
     return null;
 
+  }
+
+  private getCampaignDeliveryTargets(campaign: Campaign): CampaignTarget[] {
+    return campaign.campaign_targets || [];
+  }
+
+  getEmailDeliveryLabel(campaign: Campaign): string {
+    if (!campaign.send_emails) return 'Disabled';
+
+    const targets = this.getCampaignDeliveryTargets(campaign);
+    if (targets.length === 0) return 'Pending';
+
+    const pending = targets.filter(target => target.status === 'pending').length;
+    if (pending > 0) return 'In progress';
+
+    return 'Complete';
+  }
+
+  getEmailDeliveryBadgeClass(campaign: Campaign): string {
+    const label = this.getEmailDeliveryLabel(campaign);
+    switch (label) {
+      case 'Disabled':
+        return 'badge-ghost';
+      case 'Pending':
+        return 'badge-warning';
+      case 'In progress':
+        return 'badge-info';
+      case 'Complete':
+        return 'badge-success';
+      default:
+        return 'badge-ghost';
+    }
   }
 
 }

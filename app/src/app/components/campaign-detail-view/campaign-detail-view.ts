@@ -22,6 +22,7 @@ import { ToastService } from 'src/app/services/toast.service';
 import { Group } from 'src/app/models/group.model';
 import { SMTPProfile } from 'src/app/models/smtp.model';
 import { EmailTemplate } from 'src/app/models/email-template.model';
+import { CampaignTarget } from 'src/app/models/campaign-target.model';
 
 
 @Component({
@@ -75,6 +76,8 @@ export class CampaignDetailView {
 
   resultToDelete: any = null;
   expandedResultId: number | null = null;
+  emailDeliveryPollingId: ReturnType<typeof setInterval> | null = null;
+  devModeErrorMessage = 'Email sending is not allowed while development mode is enabled.';
 
   toggleResult(id: number) {
     this.expandedResultId =
@@ -107,6 +110,7 @@ export class CampaignDetailView {
         next: (data) => {
 
           this.campaign = data;
+          this.syncEmailDeliveryPolling();
 
           if (this.campaign.template_id) {
             this.loadTemplate(this.campaign.template_id);
@@ -123,6 +127,10 @@ export class CampaignDetailView {
           this.toastr.show(message, "error");
         }
       });
+  }
+
+  ngOnDestroy(): void {
+    this.stopEmailDeliveryPolling();
   }
 
   loadTemplate(templateId: string) {
@@ -215,6 +223,119 @@ export class CampaignDetailView {
     return Math.round(
       (this.campaign.total_submitted / this.campaign.total_clicked) * 100
     );
+  }
+
+  getCampaignTargets(): CampaignTarget[] {
+    return this.campaign?.campaign_targets || [];
+  }
+
+  getExpectedTargetsCount(): number {
+    const groups = this.campaign?.groups || [];
+    if (groups.length === 0) return this.getCampaignTargets().length;
+
+    const emails = new Set<string>();
+    for (const group of groups) {
+      for (const target of group.targets || []) {
+        const email = (target.email || '').trim().toLowerCase();
+        if (email) emails.add(email);
+      }
+    }
+
+    if (emails.size > 0) return emails.size;
+    return this.getCampaignTargets().length;
+  }
+
+  getCampaignTargetsSentCount(): number {
+    return this.getCampaignTargets().filter(target => target.status === 'sent').length;
+  }
+
+  getCampaignTargetsFailedCount(): number {
+    return this.getCampaignTargets().filter(target => target.status === 'failed').length;
+  }
+
+  getCampaignTargetsPendingCount(): number {
+    const explicitPending = this.getCampaignTargets().filter(target => target.status === 'pending').length;
+    const expected = this.getExpectedTargetsCount();
+    const resolved = this.getCampaignTargetsSentCount() + this.getCampaignTargetsFailedCount() + explicitPending;
+    const inferredPending = Math.max(expected - resolved, 0);
+    return explicitPending + inferredPending;
+  }
+
+  getCampaignTargetsOpenedCount(): number {
+    return this.getCampaignTargets().filter(target => !!target.opened_at).length;
+  }
+
+  getCampaignTargetsClickedCount(): number {
+    return this.getCampaignTargets().filter(target => !!target.clicked_at).length;
+  }
+
+  getCampaignTargetsSubmittedCount(): number {
+    return this.getCampaignTargets().filter(target => !!target.submitted_at).length;
+  }
+
+  isEmailDeliveryInProgress(): boolean {
+    if (!this.campaign?.send_emails) return false;
+
+    const targets = this.getCampaignTargets();
+    const pending = this.getCampaignTargetsPendingCount();
+    const sent = this.getCampaignTargetsSentCount();
+    const failed = this.getCampaignTargetsFailedCount();
+
+    if (targets.length === 0) return this.campaign.status === 'active';
+
+    return pending > 0 || sent+failed < targets.length;
+  }
+
+  private syncEmailDeliveryPolling(): void {
+    if (this.isEmailDeliveryInProgress()) {
+      this.startEmailDeliveryPolling();
+      return;
+    }
+    this.stopEmailDeliveryPolling();
+  }
+
+  private startEmailDeliveryPolling(): void {
+    if (this.emailDeliveryPollingId) return;
+
+    this.emailDeliveryPollingId = setInterval(() => {
+      this.apiService.getCampaignById(this.campaignId).subscribe({
+        next: (data) => {
+          this.campaign = data;
+          if (!this.isEmailDeliveryInProgress()) {
+            this.stopEmailDeliveryPolling();
+          }
+        },
+        error: () => {
+          this.stopEmailDeliveryPolling();
+        }
+      });
+    }, 3000);
+  }
+
+  private stopEmailDeliveryPolling(): void {
+    if (!this.emailDeliveryPollingId) return;
+
+    clearInterval(this.emailDeliveryPollingId);
+    this.emailDeliveryPollingId = null;
+  }
+
+  getTargetDisplayName(campaignTarget: CampaignTarget): string {
+    const firstName = campaignTarget.target?.first_name?.trim() || '';
+    const lastName = campaignTarget.target?.last_name?.trim() || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || '-';
+  }
+
+  getTargetStatusBadge(status: string): string {
+    switch (status) {
+      case 'sent':
+        return 'badge-success';
+      case 'failed':
+        return 'badge-error';
+      case 'pending':
+      default:
+        return 'badge-warning';
+    }
   }
 
   getUrl(): string {
@@ -332,7 +453,6 @@ export class CampaignDetailView {
   }
 
   saveCampaignEdit() {
-
     const payload = {
       ...this.editCampaignData,
       smtp_profile_id: this.editCampaignData.smtp_profile_id ?? 0,
@@ -348,6 +468,8 @@ export class CampaignDetailView {
 
           const modal = document.getElementById('edit_campaign_modal') as HTMLDialogElement;
           modal?.close();
+
+          this.loadCampaign();
         },
         error: (err) => {
           const message = err?.error?.error || "Falied to update campagin";
@@ -393,10 +515,23 @@ export class CampaignDetailView {
 
   startCampaign() {
     if (!this.campaign) return;
+    if (this.campaign.dev_mode && this.campaign.send_emails) {
+      this.openDevModeErrorModal();
+      return;
+    }
 
     this.apiService.startCampaign(this.campaign.id).subscribe({
-      next: (c) => this.campaign = c,
-      error: (err) => alert(err.message)
+      next: (c) => {
+        this.campaign = c;
+        this.syncEmailDeliveryPolling();
+      },
+      error: (err) => {
+        if (err?.error?.error?.includes('dev_mode')) {
+          this.openDevModeErrorModal();
+          return;
+        }
+        alert(err.message);
+      }
     });
   }
 
@@ -444,6 +579,16 @@ export class CampaignDetailView {
     const modal = document.getElementById('delete_campaign_modal') as HTMLDialogElement;
     modal?.showModal();
 
+  }
+
+  openDevModeErrorModal() {
+    const modal = document.getElementById('dev_mode_error_modal') as HTMLDialogElement;
+    modal?.showModal();
+  }
+
+  closeDevModeErrorModal() {
+    const modal = document.getElementById('dev_mode_error_modal') as HTMLDialogElement;
+    modal?.close();
   }
   confirmDelete(result: any, event: Event) {
     event.stopPropagation();

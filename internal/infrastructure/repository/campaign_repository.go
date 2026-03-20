@@ -46,6 +46,9 @@ func (r *CampaignRepository) GetByID(id int64, userId int64) (*campaign.Campaign
 		Preload("Results").
 		Preload("Events").
 		Preload("Groups").
+		Preload("Groups.Targets").
+		Preload("CampaignTargets").
+		Preload("CampaignTargets.Target").
 		Preload("SMTPProfile").
 		Preload("EmailTemplate").
 		Where("id = ? AND user_id = ?", id, userId).
@@ -107,6 +110,7 @@ func (r *CampaignRepository) ListByUser(
 
 	err := baseQuery.
 		Preload("Groups").
+		Preload("CampaignTargets").
 		Preload("SMTPProfile").
 		Preload("EmailTemplate").
 		Order("created_at DESC").
@@ -137,12 +141,31 @@ func (r *CampaignRepository) Update(c *campaign.Campaign) error {
 				"send_emails":       c.SendEmails,
 				"smtp_profile_id":   c.SMTPProfileId,
 				"email_template_id": c.EmailTemplateId,
+				"total_sent":        c.TotalSent,
 			}).Error; err != nil {
 			return err
 		}
 
 		return tx.Model(c).Association("Groups").Replace(c.Groups)
 	})
+}
+
+func (r *CampaignRepository) SaveCampaignTarget(target *campaign.CampaignTarget) error {
+	if target.Id > 0 {
+		return r.db.Save(target).Error
+	}
+	return r.db.Create(target).Error
+}
+
+func (r *CampaignRepository) GetCampaignTargetByTargetID(campaignID int64, targetID int64) (*campaign.CampaignTarget, error) {
+	var ct campaign.CampaignTarget
+	err := r.db.
+		Where("campaign_id = ? AND target_id = ?", campaignID, targetID).
+		First(&ct).Error
+	if err != nil {
+		return nil, err
+	}
+	return &ct, nil
 }
 
 func (r *CampaignRepository) Delete(id int64, userId int64) error {

@@ -1,17 +1,24 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"flexphish/internal/config"
 	"flexphish/internal/domain/campaign"
 	"flexphish/internal/domain/group"
 	"flexphish/internal/domain/smtp"
+	"flexphish/internal/domain/target"
 	"flexphish/internal/domain/template"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	"gorm.io/gorm"
 )
 
 type CampaignHandler struct {
@@ -323,7 +330,13 @@ func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(existing)
+	updatedCampaign, err := h.repo.GetByID(id, userID)
+	if err != nil {
+		json.NewEncoder(w).Encode(existing)
+		return
+	}
+
+	json.NewEncoder(w).Encode(updatedCampaign)
 }
 
 func (h *CampaignHandler) resolveGroups(userID int64, groupIDs []int64) ([]group.Group, error) {
@@ -467,6 +480,38 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 	camp.Status = campaign.StatusActive
 	camp.LaunchDate = &now
 
+	if camp.DevMode && camp.SendEmails {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": "email sending is not allowed while dev_mode is enabled",
+		})
+		return
+	}
+
+	if camp.SendEmails {
+		if camp.SMTPProfileId == nil || camp.EmailTemplateId == nil {
+			JSONResponse(w, http.StatusBadRequest, map[string]string{
+				"error": "smtp_profile_id and email_template_id are required when send_emails is enabled",
+			})
+			return
+		}
+
+		_, err := h.smtpRepo.GetByID(*camp.SMTPProfileId)
+		if err != nil {
+			JSONResponse(w, http.StatusBadRequest, map[string]string{
+				"error": "smtp profile not found",
+			})
+			return
+		}
+
+		_, err = h.emailTemplateRepo.GetByID(*camp.EmailTemplateId)
+		if err != nil {
+			JSONResponse(w, http.StatusBadRequest, map[string]string{
+				"error": "email template not found",
+			})
+			return
+		}
+	}
+
 	if err := h.repo.Update(camp); err != nil {
 		JSONResponse(w, http.StatusInternalServerError, map[string]string{
 			"error": err.Error(),
@@ -474,7 +519,195 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	JSONResponse(w, http.StatusOK, camp)
+	if camp.SendEmails {
+		go h.sendCampaignEmailsInBackground(camp.Id, userID)
+	}
+
+	updatedCampaign, err := h.repo.GetByID(id, userID)
+	if err != nil {
+		JSONResponse(w, http.StatusOK, camp)
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, updatedCampaign)
+}
+
+func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userID int64) {
+	camp, err := h.repo.GetByID(campaignID, userID)
+	if err != nil {
+		return
+	}
+
+	if !camp.SendEmails || camp.SMTPProfileId == nil || camp.EmailTemplateId == nil {
+		return
+	}
+
+	profile, err := h.smtpRepo.GetByID(*camp.SMTPProfileId)
+	if err != nil {
+		return
+	}
+
+	emailTemplate, err := h.emailTemplateRepo.GetByID(*camp.EmailTemplateId)
+	if err != nil {
+		return
+	}
+
+	targets, err := h.collectCampaignTargets(camp.Groups)
+	if err != nil || len(targets) == 0 {
+		return
+	}
+
+	baseURL := h.buildCampaignURL(camp.Subdomain)
+	sentCount := int64(0)
+
+	for _, t := range targets {
+		existingTarget, err := h.repo.GetCampaignTargetByTargetID(camp.Id, t.Id)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			continue
+		}
+
+		if existingTarget != nil && existingTarget.Status == "sent" && existingTarget.EmailSentAt != nil {
+			sentCount++
+			continue
+		}
+
+		token := ""
+		campaignTarget := &campaign.CampaignTarget{
+			CampaignId: camp.Id,
+			TargetId:   t.Id,
+			Status:     "pending",
+		}
+
+		if existingTarget != nil {
+			campaignTarget = existingTarget
+			token = existingTarget.Token
+		}
+
+		if token == "" {
+			token, err = generateCampaignToken()
+			if err != nil {
+				continue
+			}
+			campaignTarget.Token = token
+		}
+
+		_ = h.repo.SaveCampaignTarget(campaignTarget)
+
+		trackedURL := fmt.Sprintf("%s?s=%s", baseURL, token)
+		subject := renderEmailTemplateField(emailTemplate.Subject, t, trackedURL)
+		body := renderEmailTemplateField(emailTemplate.Body, t, trackedURL)
+		msg, fromEmail := buildCampaignEmailMessage(profile, t.Email, subject, body)
+
+		sendErr := sendSMTPMessage(
+			profile.Host,
+			profile.Port,
+			profile.Username,
+			profile.Password,
+			fromEmail,
+			[]string{t.Email},
+			msg,
+		)
+		if sendErr != nil {
+			campaignTarget.Status = "failed"
+			_ = h.repo.SaveCampaignTarget(campaignTarget)
+			continue
+		}
+
+		sentAt := time.Now()
+		campaignTarget.Status = "sent"
+		campaignTarget.EmailSentAt = &sentAt
+
+		if err := h.repo.SaveCampaignTarget(campaignTarget); err != nil {
+			continue
+		}
+
+		sentCount++
+	}
+
+	camp.TotalSent = sentCount
+	_ = h.repo.Update(camp)
+}
+
+func (h *CampaignHandler) collectCampaignTargets(groups []group.Group) ([]target.Target, error) {
+	seenByID := make(map[int64]struct{})
+	seenByEmail := make(map[string]struct{})
+	targets := make([]target.Target, 0)
+
+	for _, g := range groups {
+		groupTargets, err := h.groupRepo.ListTargets(g.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, t := range groupTargets {
+			if _, exists := seenByID[t.Id]; exists {
+				continue
+			}
+
+			emailKey := strings.ToLower(strings.TrimSpace(t.Email))
+			if emailKey == "" {
+				continue
+			}
+
+			if _, exists := seenByEmail[emailKey]; exists {
+				continue
+			}
+
+			seenByID[t.Id] = struct{}{}
+			seenByEmail[emailKey] = struct{}{}
+			targets = append(targets, t)
+		}
+	}
+
+	return targets, nil
+}
+
+func (h *CampaignHandler) buildCampaignURL(subdomain string) string {
+	baseDomain := config.GetString("campaign.base_domain")
+	return fmt.Sprintf("http://%s.%s", subdomain, baseDomain)
+}
+
+func generateCampaignToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func renderEmailTemplateField(content string, t target.Target, url string) string {
+	replacer := strings.NewReplacer(
+		"{{FirstName}}", t.FirstName,
+		"{{LastName}}", t.LastName,
+		"{{Email}}", t.Email,
+		"{{Position}}", t.Position,
+		"{{URL}}", url,
+	)
+	return replacer.Replace(content)
+}
+
+func buildCampaignEmailMessage(profile *smtp.SMTPProfile, recipient string, subject string, body string) ([]byte, string) {
+	fromEmail := profile.FromEmail
+	if strings.TrimSpace(fromEmail) == "" {
+		fromEmail = profile.Username
+	}
+
+	fromHeader := fromEmail
+	if strings.TrimSpace(profile.FromName) != "" {
+		fromHeader = fmt.Sprintf("%s <%s>", profile.FromName, fromEmail)
+	}
+
+	msg := []byte(
+		"From: " + fromHeader + "\r\n" +
+			"To: " + recipient + "\r\n" +
+			"Subject: " + subject + "\r\n" +
+			"MIME-Version: 1.0\r\n" +
+			"Content-Type: text/html; charset=UTF-8\r\n" +
+			"\r\n" +
+			body + "\r\n",
+	)
+
+	return msg, fromEmail
 }
 
 func (h *CampaignHandler) Stop(w http.ResponseWriter, r *http.Request) {
