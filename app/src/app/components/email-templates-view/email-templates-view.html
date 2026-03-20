@@ -77,6 +77,38 @@
       </label>
     </div>
 
+    <div class="card bg-base-200 border border-base-300 mb-4">
+      <div class="card-body p-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm font-semibold">Dynamic variables:</span>
+          <button *ngFor="let item of placeholders" class="btn btn-xs btn-outline btn-secondary"
+            (click)="insertIntoBody(item.token)">
+            {{ item.token }}
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-2">
+          <span class="text-xs opacity-70">Insert into subject:</span>
+          <button *ngFor="let item of placeholders" class="btn btn-xs btn-outline btn-accent"
+            (click)="insertIntoSubject(item.token)">
+            {{ item.token }}
+          </button>
+        </div>
+
+        <div class="divider my-2"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+          <input class="input input-bordered input-sm w-full" placeholder="Preview First Name"
+            [(ngModel)]="previewData.firstName" />
+          <input class="input input-bordered input-sm w-full" placeholder="Preview Last Name"
+            [(ngModel)]="previewData.lastName" />
+          <input class="input input-bordered input-sm w-full" placeholder="Preview Email"
+            [(ngModel)]="previewData.email" />
+          <input class="input input-bordered input-sm w-full" placeholder="Preview Position"
+            [(ngModel)]="previewData.position" />
+        </div>
+      </div>
+    </div>
+
     <div role="tablist" class="tabs tabs-lift">
       <input type="radio" name="create_email_body_tabs" role="tab" class="tab" aria-label="HTML Code" checked />
       <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-3">
@@ -87,8 +119,12 @@
 
       <input type="radio" name="create_email_body_tabs" role="tab" class="tab" aria-label="Preview" />
       <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-4 min-h-[380px]">
+        <div class="mb-3 p-3 rounded-box bg-base-200 border border-base-300">
+          <p class="text-xs opacity-70 mb-1">Rendered Subject</p>
+          <p class="font-semibold">{{ renderedSubject }}</p>
+        </div>
         <div class="bg-base-200 border border-base-300 rounded-lg p-4 min-h-[340px]">
-          <div [innerHTML]="form.body"></div>
+          <div [innerHTML]="renderedBody"></div>
         </div>
       </div>
     </div>
@@ -120,6 +156,37 @@
       </label>
     </div>
 
+    <div class="card bg-base-200 border border-base-300 mb-4">
+      <div class="card-body p-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm font-semibold">Dynamic variables:</span>
+          <button *ngFor="let item of placeholders" class="btn btn-xs btn-outline" (click)="insertIntoBody(item.token)">
+            {{ item.token }}
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-2">
+          <span class="text-xs opacity-70">Insert into subject:</span>
+          <button *ngFor="let item of placeholders" class="btn btn-xs btn-ghost"
+            (click)="insertIntoSubject(item.token)">
+            {{ item.token }}
+          </button>
+        </div>
+
+        <div class="divider my-2"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+          <input class="input input-bordered input-sm w-full" placeholder="Preview First Name"
+            [(ngModel)]="previewData.firstName" />
+          <input class="input input-bordered input-sm w-full" placeholder="Preview Last Name"
+            [(ngModel)]="previewData.lastName" />
+          <input class="input input-bordered input-sm w-full" placeholder="Preview Email"
+            [(ngModel)]="previewData.email" />
+          <input class="input input-bordered input-sm w-full" placeholder="Preview Position"
+            [(ngModel)]="previewData.position" />
+        </div>
+      </div>
+    </div>
+
     <div role="tablist" class="tabs tabs-lift">
       <input type="radio" name="edit_email_body_tabs" role="tab" class="tab" aria-label="HTML Code" checked />
       <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-3">
@@ -130,8 +197,12 @@
 
       <input type="radio" name="edit_email_body_tabs" role="tab" class="tab" aria-label="Preview" />
       <div role="tabpanel" class="tab-content bg-base-100 border border-base-300 rounded-box p-4 min-h-[380px]">
+        <div class="mb-3 p-3 rounded-box bg-base-200 border border-base-300">
+          <p class="text-xs opacity-70 mb-1">Rendered Subject</p>
+          <p class="font-semibold">{{ renderedSubject }}</p>
+        </div>
         <div class="bg-base-200 border border-base-300 rounded-lg p-4 min-h-[340px]">
-          <div [innerHTML]="form.body"></div>
+          <div [innerHTML]="renderedBody"></div>
         </div>
       </div>
     </div>

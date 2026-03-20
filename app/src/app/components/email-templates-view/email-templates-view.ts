@@ -15,6 +15,13 @@ type EmailTemplateForm = {
   body: string
 }
 
+type TargetPreviewData = {
+  firstName: string
+  lastName: string
+  email: string
+  position: string
+}
+
 @Component({
   selector: 'app-email-templates-view',
   standalone: true,
@@ -24,6 +31,19 @@ type EmailTemplateForm = {
 })
 export class EmailTemplatesView implements OnInit {
   language_html = html()
+  placeholders = [
+    { label: 'First Name', token: '{{FirstName}}' },
+    { label: 'Last Name', token: '{{LastName}}' },
+    { label: 'Email', token: '{{Email}}' },
+    { label: 'Position', token: '{{Position}}' }
+  ]
+
+  previewData: TargetPreviewData = {
+    firstName: 'Ana',
+    lastName: 'Silva',
+    email: 'ana.silva@company.com',
+    position: 'Manager'
+  }
 
   templates: EmailTemplate[] = []
   filteredTemplates: EmailTemplate[] = []
@@ -163,6 +183,24 @@ export class EmailTemplatesView implements OnInit {
     })
   }
 
+  insertIntoBody(token: string) {
+    const current = this.form.body || ''
+    this.form.body = `${current}${current ? '\n' : ''}${token}`
+  }
+
+  insertIntoSubject(token: string) {
+    const current = this.form.subject || ''
+    this.form.subject = `${current}${current ? ' ' : ''}${token}`
+  }
+
+  get renderedSubject(): string {
+    return this.applyPlaceholders(this.form.subject || '')
+  }
+
+  get renderedBody(): string {
+    return this.applyPlaceholders(this.form.body || '')
+  }
+
   private createEmptyForm(): EmailTemplateForm {
     return {
       name: '',
@@ -188,6 +226,26 @@ export class EmailTemplatesView implements OnInit {
       subject,
       body
     }
+  }
+
+  private applyPlaceholders(content: string): string {
+    if (!content) {
+      return ''
+    }
+
+    const replacements: Record<string, string> = {
+      '{{FirstName}}': this.previewData.firstName || '',
+      '{{LastName}}': this.previewData.lastName || '',
+      '{{Email}}': this.previewData.email || '',
+      '{{Position}}': this.previewData.position || ''
+    }
+
+    let rendered = content
+    Object.entries(replacements).forEach(([key, value]) => {
+      rendered = rendered.split(key).join(value)
+    })
+
+    return rendered
   }
 
   private extractError(err: any, fallback: string): string {
