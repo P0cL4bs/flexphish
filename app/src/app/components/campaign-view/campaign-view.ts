@@ -9,6 +9,9 @@ import { Template, TemplateMetadata } from 'src/app/models/template.model';
 import { CampaignDetail } from 'src/app/models/campaign-detail.model';
 import { Config } from 'src/app/models/config.model';
 import { ToastService } from 'src/app/services/toast.service';
+import { Group } from 'src/app/models/group.model';
+import { SMTPProfile } from 'src/app/models/smtp.model';
+import { EmailTemplate } from 'src/app/models/email-template.model';
 
 @Component({
   selector: 'app-campaign-view',
@@ -27,9 +30,18 @@ export class CampaignView implements OnInit {
     template_id: '',
     subdomain: '',
     dev_mode: false,
+    group_ids: [] as number[],
+    smtp_profile_id: null as number | null,
+    email_template_id: null as number | null,
   };
   templates: TemplateMetadata[] = [];
   loadingTemplates = false;
+  groups: Group[] = [];
+  loadingGroups = false;
+  smtpProfiles: SMTPProfile[] = [];
+  loadingSMTPProfiles = false;
+  emailTemplates: EmailTemplate[] = [];
+  loadingEmailTemplates = false;
 
   creating = false;
   errorMessage = '';
@@ -56,6 +68,9 @@ export class CampaignView implements OnInit {
   ngOnInit(): void {
     this.loadCampaigns();
     this.loadTemplates();
+    this.loadGroups();
+    this.loadSMTPProfiles();
+    this.loadEmailTemplates();
     this.api.getConfigs().subscribe({
       next: (data) => {
         this.config = data
@@ -66,6 +81,51 @@ export class CampaignView implements OnInit {
     window.addEventListener('campagins:reload', () => {
       this.loadCampaigns();
       this.loadTemplates();
+      this.loadGroups();
+      this.loadSMTPProfiles();
+      this.loadEmailTemplates();
+    });
+  }
+
+  loadGroups() {
+    this.loadingGroups = true;
+
+    this.api.getGroups().subscribe({
+      next: (data) => {
+        this.groups = data;
+        this.loadingGroups = false;
+      },
+      error: () => {
+        this.loadingGroups = false;
+      }
+    });
+  }
+
+  loadSMTPProfiles() {
+    this.loadingSMTPProfiles = true;
+
+    this.api.getSMTPProfiles().subscribe({
+      next: (data) => {
+        this.smtpProfiles = data;
+        this.loadingSMTPProfiles = false;
+      },
+      error: () => {
+        this.loadingSMTPProfiles = false;
+      }
+    });
+  }
+
+  loadEmailTemplates() {
+    this.loadingEmailTemplates = true;
+
+    this.api.getEmailTemplates().subscribe({
+      next: (data) => {
+        this.emailTemplates = data;
+        this.loadingEmailTemplates = false;
+      },
+      error: () => {
+        this.loadingEmailTemplates = false;
+      }
     });
   }
   loadTemplates() {
@@ -125,7 +185,14 @@ export class CampaignView implements OnInit {
     this.creating = true;
     this.errorMessage = '';
 
-    this.api.createCampaign(this.newCampaign)
+    const payload = {
+      ...this.newCampaign,
+      smtp_profile_id: this.newCampaign.smtp_profile_id ?? 0,
+      email_template_id: this.newCampaign.email_template_id ?? 0,
+      send_emails: this.newCampaign.smtp_profile_id != null && this.newCampaign.email_template_id != null,
+    };
+
+    this.api.createCampaign(payload)
       .subscribe({
         next: (campaign: Campaign) => {
 
@@ -139,6 +206,9 @@ export class CampaignView implements OnInit {
             template_id: '',
             subdomain: '',
             dev_mode: false,
+            group_ids: [],
+            smtp_profile_id: null,
+            email_template_id: null,
           };
 
           this.router.navigate(['/campaigns', campaign.id]);
@@ -148,6 +218,40 @@ export class CampaignView implements OnInit {
           this.errorMessage = err?.error?.error || "Failed to create a campaign";;
         }
       });
+  }
+
+  isCreateGroupSelected(groupId: number): boolean {
+    return this.newCampaign.group_ids.includes(groupId);
+  }
+
+  toggleCreateGroupSelection(groupId: number, checked: boolean): void {
+    if (checked) {
+      if (!this.isCreateGroupSelected(groupId)) {
+        this.newCampaign.group_ids = [...this.newCampaign.group_ids, groupId];
+      }
+      return;
+    }
+
+    this.newCampaign.group_ids = this.newCampaign.group_ids.filter(id => id !== groupId);
+  }
+
+  removeCreateGroupSelection(groupId: number): void {
+    this.newCampaign.group_ids = this.newCampaign.group_ids.filter(id => id !== groupId);
+  }
+
+  getCreateSelectedGroups(): Group[] {
+    return this.groups.filter(group => this.newCampaign.group_ids.includes(group.id));
+  }
+
+  getCreateGroupsDropdownLabel(): string {
+    const count = this.newCampaign.group_ids.length;
+    if (count === 0) {
+      return 'Select groups';
+    }
+    if (count === 1) {
+      return '1 group selected';
+    }
+    return `${count} groups selected`;
   }
 
   applyFilters(): void {

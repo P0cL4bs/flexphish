@@ -49,7 +49,15 @@ func SetupRoutes(
 	RegisterTemplateRoutes(protected, templateHandler)
 	RegisterHtmlfilesRoutes(protected, handlers.NewHtmlFileHandler(htmlFileRepo, templateRepo))
 	RegisterStaticFilesRoutes(protected, handlers.NewStaticFileHandler(staticFileRepo, templateRepo))
-	RegisterCampaignRoutes(protected, campaignRepo, templateRepo, middleware.AuthMiddleware(jwtService))
+	RegisterCampaignRoutes(
+		protected,
+		campaignRepo,
+		templateRepo,
+		groupRepo,
+		smtpRepo,
+		emailTemplateRepo,
+		middleware.AuthMiddleware(jwtService),
+	)
 	RegisterConfigRoutes(protected, configHandler)
 	RegisterGroupRoutes(protected, groupRepo)
 	RegisterSMTPRoutes(protected, smtpRepo)

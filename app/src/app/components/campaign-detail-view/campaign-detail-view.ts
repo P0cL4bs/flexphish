@@ -19,6 +19,9 @@ import {
 import { Template, TemplateMetadata } from 'src/app/models/template.model';
 import { Config } from 'src/app/models/config.model';
 import { ToastService } from 'src/app/services/toast.service';
+import { Group } from 'src/app/models/group.model';
+import { SMTPProfile } from 'src/app/models/smtp.model';
+import { EmailTemplate } from 'src/app/models/email-template.model';
 
 
 @Component({
@@ -45,6 +48,9 @@ export class CampaignDetailView {
     name: '',
     template_id: '',
     dev_mode: false,
+    group_ids: [] as number[],
+    smtp_profile_id: null as number | null,
+    email_template_id: null as number | null,
   };
 
   faPlay = faPlay;
@@ -57,6 +63,12 @@ export class CampaignDetailView {
   template?: Template;
   templates: TemplateMetadata[] = [];
   loadingTemplates = false;
+  groups: Group[] = [];
+  loadingGroups = false;
+  smtpProfiles: SMTPProfile[] = [];
+  loadingSMTPProfiles = false;
+  emailTemplates: EmailTemplate[] = [];
+  loadingEmailTemplates = false;
   searchTerm: string = '';
 
   config!: Config;
@@ -146,6 +158,57 @@ export class CampaignDetailView {
         }
       });
 
+  }
+
+  loadGroups() {
+    this.loadingGroups = true;
+
+    this.apiService.getGroups().subscribe({
+      next: (data) => {
+        this.groups = data;
+        this.loadingGroups = false;
+      },
+      error: (err) => {
+        console.error("Error loading groups", err);
+        this.loadingGroups = false;
+        const message = err?.error?.error || "Error loading groups";
+        this.toastr.show(message, "error");
+      }
+    });
+  }
+
+  loadSMTPProfiles() {
+    this.loadingSMTPProfiles = true;
+
+    this.apiService.getSMTPProfiles().subscribe({
+      next: (data) => {
+        this.smtpProfiles = data;
+        this.loadingSMTPProfiles = false;
+      },
+      error: (err) => {
+        console.error("Error loading smtp profiles", err);
+        this.loadingSMTPProfiles = false;
+        const message = err?.error?.error || "Error loading smtp profiles";
+        this.toastr.show(message, "error");
+      }
+    });
+  }
+
+  loadEmailTemplates() {
+    this.loadingEmailTemplates = true;
+
+    this.apiService.getEmailTemplates().subscribe({
+      next: (data) => {
+        this.emailTemplates = data;
+        this.loadingEmailTemplates = false;
+      },
+      error: (err) => {
+        console.error("Error loading email templates", err);
+        this.loadingEmailTemplates = false;
+        const message = err?.error?.error || "Error loading email templates";
+        this.toastr.show(message, "error");
+      }
+    });
   }
   getConversion(): number {
     if (!this.campaign?.total_clicked) return 0;
@@ -253,10 +316,16 @@ export class CampaignDetailView {
     this.editCampaignData = {
       name: this.campaign.name,
       template_id: this.campaign.template_id,
-      dev_mode: this.campaign.dev_mode
+      dev_mode: this.campaign.dev_mode,
+      group_ids: (this.campaign.groups || []).map(group => group.id),
+      smtp_profile_id: this.campaign.smtp_profile_id ?? null,
+      email_template_id: this.campaign.email_template_id ?? null,
     };
 
     this.loadTemplates();
+    this.loadGroups();
+    this.loadSMTPProfiles();
+    this.loadEmailTemplates();
 
     const modal = document.getElementById('edit_campaign_modal') as HTMLDialogElement;
     modal?.showModal();
@@ -264,7 +333,14 @@ export class CampaignDetailView {
 
   saveCampaignEdit() {
 
-    this.apiService.updateCampaign(this.campaign.id, this.editCampaignData)
+    const payload = {
+      ...this.editCampaignData,
+      smtp_profile_id: this.editCampaignData.smtp_profile_id ?? 0,
+      email_template_id: this.editCampaignData.email_template_id ?? 0,
+      send_emails: this.editCampaignData.smtp_profile_id != null && this.editCampaignData.email_template_id != null,
+    };
+
+    this.apiService.updateCampaign(this.campaign.id, payload)
       .subscribe({
         next: (updated) => {
 
@@ -279,6 +355,40 @@ export class CampaignDetailView {
         }
       });
 
+  }
+
+  isEditGroupSelected(groupId: number): boolean {
+    return this.editCampaignData.group_ids.includes(groupId);
+  }
+
+  toggleEditGroupSelection(groupId: number, checked: boolean): void {
+    if (checked) {
+      if (!this.isEditGroupSelected(groupId)) {
+        this.editCampaignData.group_ids = [...this.editCampaignData.group_ids, groupId];
+      }
+      return;
+    }
+
+    this.editCampaignData.group_ids = this.editCampaignData.group_ids.filter(id => id !== groupId);
+  }
+
+  removeEditGroupSelection(groupId: number): void {
+    this.editCampaignData.group_ids = this.editCampaignData.group_ids.filter(id => id !== groupId);
+  }
+
+  getEditSelectedGroups(): Group[] {
+    return this.groups.filter(group => this.editCampaignData.group_ids.includes(group.id));
+  }
+
+  getEditGroupsDropdownLabel(): string {
+    const count = this.editCampaignData.group_ids.length;
+    if (count === 0) {
+      return 'Select groups';
+    }
+    if (count === 1) {
+      return '1 group selected';
+    }
+    return `${count} groups selected`;
   }
 
   startCampaign() {

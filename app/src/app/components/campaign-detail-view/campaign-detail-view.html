@@ -145,35 +145,16 @@
         <!-- DETAILS GRID -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-            <!-- LEFT COLUMN -->
             <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title mb-4">Information</h2>
+                    <h2 class="card-title mb-4">Performance Summary</h2>
 
-                    <div class="space-y-3 text-sm">
+                    <progress class="progress progress-success w-full" [value]="getConversion()" max="100">
+                    </progress>
 
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Created At</span>
-                            <span class="font-medium">
-                                {{ campaign.created_at | date:'medium' }}
-                            </span>
-                        </div>
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Updated At</span>
-                            <span class="font-medium">
-                                {{ campaign.updated_at | date:'medium' }}
-                            </span>
-                        </div>
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Launched At</span>
-                            <span class="font-medium">
-                                {{ campaign.launch_date | date:'medium' }}
-                            </span>
-                        </div>
-
-                    </div>
+                    <p class="text-sm mt-3 opacity-60">
+                        Conversion rate based on user clicks.
+                    </p>
                 </div>
             </div>
 
@@ -226,17 +207,122 @@
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN -->
             <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title mb-4">Performance Summary</h2>
+                    <h2 class="card-title mb-4">Groups</h2>
 
-                    <progress class="progress progress-success w-full" [value]="getConversion()" max="100">
-                    </progress>
+                    <div *ngIf="campaign.groups && campaign.groups.length > 0; else noGroups" class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Selected</span>
+                            <span class="font-medium">{{ campaign.groups.length }}</span>
+                        </div>
 
-                    <p class="text-sm mt-3 opacity-60">
-                        Conversion rate based on user clicks.
-                    </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span *ngFor="let group of campaign.groups" class="badge badge-soft badge-primary">
+                                {{ group.name }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <ng-template #noGroups>
+                        <div class="text-sm opacity-60">
+                            No groups linked
+                        </div>
+                    </ng-template>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Email Template</h2>
+
+                    <div *ngIf="campaign.email_template as emailTemplate; else noEmailTemplate"
+                        class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Name</span>
+                            <span class="font-medium">{{ emailTemplate.name }}</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <span class="opacity-60 block">Subject</span>
+                            <p class="font-medium break-words">{{ emailTemplate.subject }}</p>
+                        </div>
+                    </div>
+
+                    <ng-template #noEmailTemplate>
+                        <div class="text-sm opacity-60">
+                            No email template linked
+                        </div>
+                    </ng-template>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">SMTP Profile</h2>
+
+                    <div *ngIf="campaign.smtp_profile as smtpProfile; else noSMTPProfile" class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Name</span>
+                            <span class="font-medium">{{ smtpProfile.name }}</span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Host</span>
+                            <span class="font-medium"><span class="badge badge-soft badge-secondary font-bold">
+                                    {{ smtpProfile.host }}:{{ smtpProfile.port }}
+                                </span></span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Username</span>
+                            <span class="font-medium break-all text-right">{{ smtpProfile.username }}</span>
+                        </div>
+
+                        <div class="flex justify-between" *ngIf="smtpProfile.from_email">
+                            <span class="opacity-60">From</span>
+                            <span class="font-medium break-all text-right">
+                                {{ smtpProfile.from_name || smtpProfile.from_email }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <ng-template #noSMTPProfile>
+                        <div class="text-sm opacity-60">
+                            No SMTP profile linked
+                        </div>
+                    </ng-template>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Information</h2>
+
+                    <div class="space-y-3 text-sm">
+
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Created At</span>
+                            <span class="font-medium">
+                                {{ campaign.created_at | date:'medium' }}
+                            </span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Updated At</span>
+                            <span class="font-medium">
+                                {{ campaign.updated_at | date:'medium' }}
+                            </span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span class="opacity-60">Launched At</span>
+                            <span class="font-medium">
+                                {{ campaign.launch_date | date:'medium' }}
+                            </span>
+                        </div>
+
+                    </div>
 
                 </div>
             </div>
@@ -547,6 +633,88 @@
 
                 </select>
 
+            </div>
+
+            <!-- Groups -->
+            <div>
+                <label class="label">
+                    <span class="label-text">Groups</span>
+                </label>
+
+                <div class="dropdown w-full">
+                    <div tabindex="0" role="button" class="btn btn-outline w-full justify-between"
+                        [class.btn-disabled]="loadingGroups">
+                        <span>{{ loadingGroups ? 'Loading groups...' : getEditGroupsDropdownLabel() }}</span>
+                        <span class="opacity-70">▼</span>
+                    </div>
+
+                    <ul tabindex="0"
+                        class="dropdown-content menu bg-base-100 rounded-box z-[100] w-full p-2 shadow border border-base-300 max-h-64 overflow-y-auto">
+
+                        <li *ngIf="!loadingGroups && groups.length === 0" class="px-3 py-2 opacity-70 text-sm">
+                            No groups available
+                        </li>
+
+                        <li *ngFor="let group of groups">
+                            <label class="label cursor-pointer justify-start gap-3 px-2">
+                                <input type="checkbox" class="checkbox checkbox-sm"
+                                    [checked]="isEditGroupSelected(group.id)"
+                                    (change)="toggleEditGroupSelection(group.id, $any($event.target).checked)" />
+                                <span>{{ group.name }}</span>
+                            </label>
+                        </li>
+
+                    </ul>
+                </div>
+
+                <div *ngIf="getEditSelectedGroups().length > 0" class="mt-2 flex flex-wrap gap-2">
+                    <span *ngFor="let selectedGroup of getEditSelectedGroups()"
+                        class="badge badge-soft badge-secondary gap-1">
+                        {{ selectedGroup.name }}
+                        <button type="button" class="cursor-pointer"
+                            (click)="removeEditGroupSelection(selectedGroup.id)">×</button>
+                    </span>
+                </div>
+            </div>
+
+            <!-- SMTP Profile -->
+            <div>
+                <label class="label">
+                    <span class="label-text">SMTP Profile</span>
+                </label>
+
+                <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.smtp_profile_id"
+                    name="smtp_profile_id" [disabled]="loadingSMTPProfiles">
+
+                    <option [ngValue]="null">
+                        {{ loadingSMTPProfiles ? 'Loading SMTP profiles...' : 'No SMTP profile' }}
+                    </option>
+
+                    <option *ngFor="let profile of smtpProfiles" [ngValue]="profile.id">
+                        {{ profile.name }} ({{ profile.host }}:{{ profile.port }})
+                    </option>
+
+                </select>
+            </div>
+
+            <!-- Email Template -->
+            <div>
+                <label class="label">
+                    <span class="label-text">Email Template</span>
+                </label>
+
+                <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.email_template_id"
+                    name="email_template_id" [disabled]="loadingEmailTemplates">
+
+                    <option [ngValue]="null">
+                        {{ loadingEmailTemplates ? 'Loading email templates...' : 'No email template' }}
+                    </option>
+
+                    <option *ngFor="let emailTemplate of emailTemplates" [ngValue]="emailTemplate.id">
+                        {{ emailTemplate.name }}
+                    </option>
+
+                </select>
             </div>
             <!-- Dev Mode -->
             <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">

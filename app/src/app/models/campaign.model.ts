@@ -1,5 +1,8 @@
 import { CampaignEvent } from "./campaign-event.model";
 import { CampaignResult } from "./campaign-result.model";
+import { EmailTemplate } from "./email-template.model";
+import { Group } from "./group.model";
+import { SMTPProfile } from "./smtp.model";
 
 export type CampaignStatus =
     | 'draft'
@@ -22,6 +25,12 @@ export interface Campaign {
     updated_at: string;
 
     template_id: string;
+    send_emails: boolean;
+    smtp_profile_id?: number;
+    email_template_id?: number;
+    smtp_profile?: SMTPProfile;
+    email_template?: EmailTemplate;
+    groups?: Group[];
 
     track_opens: boolean;
     track_clicks: boolean;
@@ -56,10 +65,18 @@ export interface CreateCampaignRequest {
     template_id: string;
     subdomain: string;
     dev_mode: boolean;
+    group_ids?: number[];
+    smtp_profile_id?: number;
+    email_template_id?: number;
+    send_emails?: boolean;
 }
 
 export interface UpdateCampaignRequest {
-    name: string;
-    template_id: string;
-    dev_mode: boolean;
+    name?: string;
+    template_id?: string;
+    dev_mode?: boolean;
+    group_ids?: number[];
+    smtp_profile_id?: number;
+    email_template_id?: number;
+    send_emails?: boolean;
 }

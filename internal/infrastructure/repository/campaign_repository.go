@@ -22,7 +22,21 @@ func NewCampaignRepository(db *gorm.DB, trepo template.TemplateRepository) campa
 }
 
 func (r *CampaignRepository) Create(c *campaign.Campaign) error {
-	return r.db.Create(c).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		groups := c.Groups
+		c.Groups = nil
+
+		if err := tx.Create(c).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(c).Association("Groups").Replace(groups); err != nil {
+			return err
+		}
+
+		c.Groups = groups
+		return nil
+	})
 }
 
 func (r *CampaignRepository) GetByID(id int64, userId int64) (*campaign.Campaign, error) {
@@ -31,6 +45,9 @@ func (r *CampaignRepository) GetByID(id int64, userId int64) (*campaign.Campaign
 	err := r.db.
 		Preload("Results").
 		Preload("Events").
+		Preload("Groups").
+		Preload("SMTPProfile").
+		Preload("EmailTemplate").
 		Where("id = ? AND user_id = ?", id, userId).
 		First(&c).Error
 
@@ -89,6 +106,9 @@ func (r *CampaignRepository) ListByUser(
 	offset := (page - 1) * pageSize
 
 	err := baseQuery.
+		Preload("Groups").
+		Preload("SMTPProfile").
+		Preload("EmailTemplate").
 		Order("created_at DESC").
 		Limit(pageSize).
 		Offset(offset).
@@ -102,16 +122,27 @@ func (r *CampaignRepository) ListByUser(
 }
 
 func (r *CampaignRepository) Update(c *campaign.Campaign) error {
-	return r.db.
-		Model(&campaign.Campaign{}).
-		Where("id = ? AND user_id = ?", c.Id, c.UserId).
-		Updates(map[string]interface{}{
-			"name":           c.Name,
-			"launch_date":    c.LaunchDate,
-			"template_id":    c.TemplateId,
-			"completed_date": c.CompletedDate,
-			"status":         c.Status,
-		}).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.
+			Model(&campaign.Campaign{}).
+			Where("id = ? AND user_id = ?", c.Id, c.UserId).
+			Updates(map[string]interface{}{
+				"name":              c.Name,
+				"subdomain":         c.Subdomain,
+				"launch_date":       c.LaunchDate,
+				"template_id":       c.TemplateId,
+				"completed_date":    c.CompletedDate,
+				"status":            c.Status,
+				"dev_mode":          c.DevMode,
+				"send_emails":       c.SendEmails,
+				"smtp_profile_id":   c.SMTPProfileId,
+				"email_template_id": c.EmailTemplateId,
+			}).Error; err != nil {
+			return err
+		}
+
+		return tx.Model(c).Association("Groups").Replace(c.Groups)
+	})
 }
 
 func (r *CampaignRepository) Delete(id int64, userId int64) error {
