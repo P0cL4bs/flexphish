@@ -16,6 +16,7 @@ func RegisterSMTPRoutes(r *mux.Router, repo smtp.Repository) {
 
 	smtpRouter.HandleFunc("", handler.List).Methods(http.MethodGet, http.MethodOptions)
 	smtpRouter.HandleFunc("", handler.Create).Methods(http.MethodPost, http.MethodOptions)
+	smtpRouter.HandleFunc("/test", handler.TestConnection).Methods(http.MethodPost, http.MethodOptions)
 
 	smtpRouter.Use(middleware.SMTPOwnershipMiddleware(repo))
 

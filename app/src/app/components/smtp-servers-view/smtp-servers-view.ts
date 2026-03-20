@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { SMTPProfile, SMTPProfilePayload } from 'src/app/models/smtp.model'
+import { SMTPProfile, SMTPProfilePayload, SMTPTestPayload } from 'src/app/models/smtp.model'
 import { ApiService } from 'src/app/services/api.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { LucideAngularModule } from "lucide-angular";
@@ -15,6 +15,7 @@ type SMTPForm = {
   password: string
   from_name: string
   from_email: string
+  test_email: string
   is_active: boolean
 }
 
@@ -33,8 +34,10 @@ export class SMTPServersView implements OnInit {
   loading = false
   creating = false
   saving = false
+  testing = false
 
   editingProfile: SMTPProfile | null = null
+  smtpValidated = false
 
   form: SMTPForm = this.createEmptyForm()
 
@@ -82,6 +85,7 @@ export class SMTPServersView implements OnInit {
 
   openCreateDialog() {
     this.form = this.createEmptyForm()
+    this.smtpValidated = false
     this.createDialog?.nativeElement.showModal()
   }
 
@@ -100,8 +104,10 @@ export class SMTPServersView implements OnInit {
       password: '',
       from_name: profile.from_name || '',
       from_email: profile.from_email || '',
+      test_email: '',
       is_active: !!profile.is_active
     }
+    this.smtpValidated = false
     this.editDialog?.nativeElement.showModal()
   }
 
@@ -117,6 +123,10 @@ export class SMTPServersView implements OnInit {
     }
     if (!payload.password) {
       this.toast.show('Password is required for create', 'warning')
+      return
+    }
+    if (!this.smtpValidated) {
+      this.toast.show('Please test SMTP connection before creating', 'warning')
       return
     }
 
@@ -187,6 +197,7 @@ export class SMTPServersView implements OnInit {
       password: '',
       from_name: '',
       from_email: '',
+      test_email: '',
       is_active: true
     }
   }
@@ -216,6 +227,47 @@ export class SMTPServersView implements OnInit {
       from_email,
       is_active: !!this.form.is_active
     }
+  }
+
+  testConnection() {
+    const host = (this.form.host || '').trim()
+    const username = (this.form.username || '').trim()
+    const password = (this.form.password || '').trim()
+    const from_name = (this.form.from_name || '').trim()
+    const from_email = (this.form.from_email || '').trim()
+    const test_email = (this.form.test_email || '').trim()
+    const port = Number(this.form.port)
+
+    if (!host || !username || !password || !test_email || !Number.isFinite(port) || port <= 0) {
+      this.toast.show('Fill host, port, username, password and test email', 'warning')
+      return
+    }
+
+    const payload: SMTPTestPayload = {
+      name: (this.form.name || '').trim(),
+      host,
+      port,
+      username,
+      password,
+      from_name,
+      from_email,
+      test_email
+    }
+
+    this.testing = true
+    this.smtpValidated = false
+    this.api.testSMTPProfile(payload).subscribe({
+      next: (res) => {
+        this.testing = false
+        this.smtpValidated = true
+        this.toast.show(res?.message || 'Test email sent successfully', 'success')
+      },
+      error: (err) => {
+        this.testing = false
+        this.smtpValidated = false
+        this.toast.show(this.extractError(err, 'SMTP test failed'), 'error')
+      }
+    })
   }
 
   private extractError(err: any, fallback: string): string {

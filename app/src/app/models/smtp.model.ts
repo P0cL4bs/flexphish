@@ -24,3 +24,14 @@ export interface SMTPProfilePayload {
   from_email?: string
   is_active: boolean
 }
+
+export interface SMTPTestPayload {
+  name: string
+  host: string
+  port: number
+  username: string
+  password: string
+  from_name?: string
+  from_email?: string
+  test_email: string
+}

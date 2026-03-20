@@ -45,8 +45,8 @@
               </span>
             </td>
             <td>
-              <span class="badge badge-sm" [class.badge-success]="profile.is_active"
-                [class.badge-warning]="!profile.is_active">
+              <span class="badge badge-sm badge-outline" [class.badge-success]="profile.is_active"
+                [class.badge-error]="!profile.is_active">
                 {{ profile.is_active ? 'active' : 'inactive' }}
               </span>
             </td>
@@ -86,19 +86,22 @@
       </div>
       <div>
         <label class="label"><span class="label-text">Host *</span></label>
-        <input class="input input-bordered w-full" [(ngModel)]="form.host" />
+        <input class="input input-bordered w-full" [(ngModel)]="form.host" (ngModelChange)="smtpValidated = false" />
       </div>
       <div>
         <label class="label"><span class="label-text">Port *</span></label>
-        <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port" />
+        <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port"
+          (ngModelChange)="smtpValidated = false" />
       </div>
       <div>
         <label class="label"><span class="label-text">Username *</span></label>
-        <input class="input input-bordered w-full" [(ngModel)]="form.username" />
+        <input class="input input-bordered w-full" [(ngModel)]="form.username"
+          (ngModelChange)="smtpValidated = false" />
       </div>
       <div class="md:col-span-2">
         <label class="label"><span class="label-text">Password *</span></label>
-        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password" />
+        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password"
+          (ngModelChange)="smtpValidated = false" />
       </div>
       <div>
         <label class="label"><span class="label-text">From Name</span></label>
@@ -107,6 +110,10 @@
       <div>
         <label class="label"><span class="label-text">From Email</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.from_email" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Test Email *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.test_email" placeholder="you@domain.com" />
       </div>
       <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
         <span class="label-text">Global SMTP server</span>
@@ -119,8 +126,12 @@
     </div>
 
     <div class="modal-action">
+      <span *ngIf="smtpValidated" class="badge badge-success badge-soft mr-auto">SMTP validated</span>
       <button class="btn" (click)="closeCreateDialog()">Cancel</button>
-      <button class="btn btn-primary" [class.loading]="creating" [disabled]="creating"
+      <button class="btn btn-outline" [class.loading]="testing" [disabled]="testing" (click)="testConnection()">
+        Test SMTP
+      </button>
+      <button class="btn btn-primary" [class.loading]="creating" [disabled]="creating || !smtpValidated"
         (click)="createProfile()">Create</button>
     </div>
   </div>
@@ -137,19 +148,22 @@
       </div>
       <div>
         <label class="label"><span class="label-text">Host *</span></label>
-        <input class="input input-bordered w-full" [(ngModel)]="form.host" />
+        <input class="input input-bordered w-full" [(ngModel)]="form.host" (ngModelChange)="smtpValidated = false" />
       </div>
       <div>
         <label class="label"><span class="label-text">Port *</span></label>
-        <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port" />
+        <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port"
+          (ngModelChange)="smtpValidated = false" />
       </div>
       <div>
         <label class="label"><span class="label-text">Username *</span></label>
-        <input class="input input-bordered w-full" [(ngModel)]="form.username" />
+        <input class="input input-bordered w-full" [(ngModel)]="form.username"
+          (ngModelChange)="smtpValidated = false" />
       </div>
       <div class="md:col-span-2">
         <label class="label"><span class="label-text">Password (leave empty to keep current)</span></label>
-        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password" />
+        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password"
+          (ngModelChange)="smtpValidated = false" />
       </div>
       <div>
         <label class="label"><span class="label-text">From Name</span></label>
@@ -158,6 +172,10 @@
       <div>
         <label class="label"><span class="label-text">From Email</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.from_email" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Test Email *</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.test_email" placeholder="you@domain.com" />
       </div>
       <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
         <span class="label-text">Global SMTP server</span>
@@ -170,7 +188,11 @@
     </div>
 
     <div class="modal-action">
+      <span *ngIf="smtpValidated" class="badge badge-success badge-soft mr-auto">SMTP validated</span>
       <button class="btn" (click)="closeEditDialog()">Cancel</button>
+      <button class="btn btn-outline" [class.loading]="testing" [disabled]="testing" (click)="testConnection()">
+        Test SMTP
+      </button>
       <button class="btn btn-primary" [class.loading]="saving" [disabled]="saving"
         (click)="updateProfile()">Save</button>
     </div>

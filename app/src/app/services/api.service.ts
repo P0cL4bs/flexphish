@@ -18,7 +18,7 @@ import { PaginatedResponse } from '../models/paginated-response.model';
 import { Config } from '../models/config.model';
 import { CampaignAnalytics } from '../models/campaign-analytics.model';
 import { CreateGroupRequest, Group, GroupTarget, GroupTargetPayload, UpdateGroupRequest } from '../models/group.model';
-import { SMTPProfile, SMTPProfilePayload } from '../models/smtp.model';
+import { SMTPProfile, SMTPProfilePayload, SMTPTestPayload } from '../models/smtp.model';
 
 
 interface JWTPayload {
@@ -720,6 +720,18 @@ export class ApiService {
     public deleteSMTPProfile(id: number): Observable<void> {
         return this.http.delete<void>(
             `${this.settings.URL()}/smtp-profiles/${id}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public testSMTPProfile(payload: SMTPTestPayload): Observable<{ message: string }> {
+        return this.http.post<{ message: string }>(
+            `${this.settings.URL()}/smtp-profiles/test`,
+            payload,
             { headers: this.creds.headers }
         ).pipe(
             catchError((error: HttpErrorResponse) => {
