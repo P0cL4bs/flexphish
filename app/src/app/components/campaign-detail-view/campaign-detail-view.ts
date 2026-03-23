@@ -25,6 +25,7 @@ import { EmailTemplate } from 'src/app/models/email-template.model';
 import { CampaignTarget } from 'src/app/models/campaign-target.model';
 import { LucideAngularModule } from 'lucide-angular';
 
+type CampaignDetailTab = 'overview' | 'delivery' | 'results';
 
 @Component({
   selector: 'app-campaign-detail-view',
@@ -73,6 +74,7 @@ export class CampaignDetailView {
   loadingEmailTemplates = false;
   eventSearchTerm: string = '';
   dispatchSearchTerm: string = '';
+  activeTab: CampaignDetailTab = 'overview';
 
   config!: Config;
 
@@ -80,6 +82,21 @@ export class CampaignDetailView {
   expandedResultId: number | null = null;
   emailDeliveryPollingId: ReturnType<typeof setInterval> | null = null;
   devModeErrorMessage = 'Email sending is not allowed while development mode is enabled.';
+
+  setActiveTab(tab: CampaignDetailTab) {
+    this.activeTab = tab;
+  }
+
+  goToResultsTab(target?: CampaignTarget) {
+    this.activeTab = 'results';
+
+    if (!target) return;
+
+    const sessionId = target.result?.session_id || '';
+    this.eventSearchTerm = sessionId;
+
+    this.expandedResultId = target.result?.id || null;
+  }
 
   toggleResult(id: number) {
     this.expandedResultId =

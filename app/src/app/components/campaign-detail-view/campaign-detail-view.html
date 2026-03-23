@@ -6,7 +6,6 @@
     </div>
 
     <div *ngIf="!loading && campaign">
-
         <!-- HEADER -->
         <div class="flex justify-between items-start mb-8">
 
@@ -103,877 +102,920 @@
             </div>
 
         </div>
-        <!-- STATS -->
-        <div class="stats shadow w-full mb-4 bg-base-100 border border-base-300">
 
-            <div class="stat">
-                <div class="stat-title">Captured Credentials</div>
-                <div class="stat-value text-primary">
-                    {{ campaign.total_submitted }}
-                </div>
-                <div class="stat-desc">Total submissions</div>
-            </div>
+        <div class="tabs tabs-lift mt-4">
+            <label class="tab">
+                <input type="radio" name="campaign_detail_tabs" [checked]="activeTab === 'overview'"
+                    (change)="setActiveTab('overview')" />
+                <lucide-icon name="layers" size="16" class="me-2"></lucide-icon>
+                Overview
+            </label>
+            <div class="tab-content bg-base-100 border border-base-300 p-6">
+                <!-- STATS -->
+                <div class="stats shadow w-full mb-4 bg-base-100 border border-base-300">
 
-            <div class="stat">
-                <div class="stat-title">Total Clicks</div>
-                <div class="stat-value text-warning">
-                    {{ campaign.total_clicked }}
-                </div>
-                <div class="stat-desc">User interactions</div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-title">Total Opens</div>
-                <div class="stat-value text-info">
-                    {{ campaign.total_opened }}
-                </div>
-                <div class="stat-desc">Tracked opens</div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-title">Conversion Rate</div>
-                <div class="stat-value text-success">
-                    {{ getConversion() }}%
-                </div>
-                <div class="stat-desc">
-                    Submitted / Clicked
-                </div>
-            </div>
-
-        </div>
-
-        <!-- DETAILS GRID -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">Performance Summary</h2>
-
-                    <progress class="progress progress-success w-full" [value]="getConversion()" max="100">
-                    </progress>
-
-                    <p class="text-sm mt-3 opacity-60">
-                        Conversion rate based on user clicks.
-                    </p>
-                </div>
-            </div>
-
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body">
-
-                    <h2 class="card-title mb-4">
-                        Template
-                    </h2>
-
-                    <div *ngIf="template; else noTemplate" class="space-y-3 text-sm">
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Name</span>
-                            <span class="font-medium">
-                                {{ template.info.name }}
-                            </span>
+                    <div class="stat">
+                        <div class="stat-title">Captured Credentials</div>
+                        <div class="stat-value text-primary">
+                            {{ campaign.total_submitted }}
                         </div>
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Category</span>
-                            <span class="font-medium">
-                                {{ template.info.category }}
-                            </span>
-                        </div>
-
-                        <div class="flex items-start justify-between text-sm">
-
-                            <span class="opacity-60">Tags</span>
-
-                            <div class="flex flex-wrap gap-2 justify-end max-w-[70%]">
-
-                                <span *ngFor="let tag of template?.info?.tags"
-                                    class="badge badge-outline badge-secondary badge-sm">
-                                    {{ tag }}
-                                </span>
-
-                            </div>
-
-                        </div>
-
+                        <div class="stat-desc">Total submissions</div>
                     </div>
 
-                    <ng-template #noTemplate>
-                        <div class="text-sm opacity-60">
-                            Template not available
+                    <div class="stat">
+                        <div class="stat-title">Total Clicks</div>
+                        <div class="stat-value text-warning">
+                            {{ campaign.total_clicked }}
                         </div>
-                    </ng-template>
-
-                </div>
-            </div>
-
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="card-title">Groups</h2>
-                        <span class="badge badge-soft badge-primary">{{ campaign.groups?.length || 0 }}</span>
+                        <div class="stat-desc">User interactions</div>
                     </div>
 
-                    <div *ngIf="campaign.groups && campaign.groups.length > 0; else noGroups" class="space-y-4 text-sm">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
-                                <p class="text-xs uppercase tracking-wide opacity-60">Selected</p>
-                                <p class="text-lg font-semibold leading-tight">{{ campaign.groups.length }}</p>
-                            </div>
-                            <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
-                                <p class="text-xs uppercase tracking-wide opacity-60">Expected Reach</p>
-                                <p class="text-lg font-semibold leading-tight">{{ getExpectedTargetsCount() }}</p>
-                            </div>
+                    <div class="stat">
+                        <div class="stat-title">Total Opens</div>
+                        <div class="stat-value text-info">
+                            {{ campaign.total_opened }}
                         </div>
+                        <div class="stat-desc">Tracked opens</div>
+                    </div>
 
-                        <div class="rounded-box border border-base-300 divide-y divide-base-300 overflow-hidden">
-                            <div *ngFor="let group of campaign.groups"
-                                class="flex items-start justify-between gap-3 px-3 py-2 bg-base-100">
-                                <div class="min-w-0">
-                                    <p class="font-medium break-words">{{ group.name }}</p>
-                                    <div class="mt-1 flex flex-wrap items-center gap-2">
-                                        <span class="badge badge-xs badge-soft"
-                                            [ngClass]="group.is_global ? 'badge-accent' : 'badge-primary'">
-                                            {{ group.is_global ? 'Global' : 'Private' }}
+                    <div class="stat">
+                        <div class="stat-title">Conversion Rate</div>
+                        <div class="stat-value text-success">
+                            {{ getConversion() }}%
+                        </div>
+                        <div class="stat-desc">
+                            Submitted / Clicked
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- DETAILS GRID -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body">
+                            <h2 class="card-title mb-4">Performance Summary</h2>
+
+                            <progress class="progress progress-success w-full" [value]="getConversion()" max="100">
+                            </progress>
+
+                            <p class="text-sm mt-3 opacity-60">
+                                Conversion rate based on user clicks.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body">
+
+                            <h2 class="card-title mb-4">
+                                Template
+                            </h2>
+
+                            <div *ngIf="template; else noTemplate" class="space-y-3 text-sm">
+
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Name</span>
+                                    <span class="font-medium">
+                                        {{ template.info.name }}
+                                    </span>
+                                </div>
+
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Category</span>
+                                    <span class="font-medium">
+                                        {{ template.info.category }}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-start justify-between text-sm">
+
+                                    <span class="opacity-60">Tags</span>
+
+                                    <div class="flex flex-wrap gap-2 justify-end max-w-[70%]">
+
+                                        <span *ngFor="let tag of template?.info?.tags"
+                                            class="badge badge-outline badge-secondary badge-sm">
+                                            {{ tag }}
                                         </span>
-                                        <span class="badge badge-xs badge-outline badge-secondary">
-                                            {{ group.targets?.length || 0 }} targets
-                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <ng-template #noTemplate>
+                                <div class="text-sm opacity-60">
+                                    Template not available
+                                </div>
+                            </ng-template>
+
+                        </div>
+                    </div>
+
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="card-title">Groups</h2>
+                                <span class="badge badge-soft badge-primary">{{ campaign.groups?.length || 0 }}</span>
+                            </div>
+
+                            <div *ngIf="campaign.groups && campaign.groups.length > 0; else noGroups"
+                                class="space-y-4 text-sm">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
+                                        <p class="text-xs uppercase tracking-wide opacity-60">Selected</p>
+                                        <p class="text-lg font-semibold leading-tight">{{ campaign.groups.length }}</p>
+                                    </div>
+                                    <div class="rounded-box border border-base-300 bg-base-200/40 px-3 py-2">
+                                        <p class="text-xs uppercase tracking-wide opacity-60">Expected Reach</p>
+                                        <p class="text-lg font-semibold leading-tight">{{ getExpectedTargetsCount() }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="rounded-box border border-base-300 divide-y divide-base-300 overflow-hidden">
+                                    <div *ngFor="let group of campaign.groups"
+                                        class="flex items-start justify-between gap-3 px-3 py-2 bg-base-100">
+                                        <div class="min-w-0">
+                                            <p class="font-medium break-words">{{ group.name }}</p>
+                                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                                <span class="badge badge-xs badge-soft"
+                                                    [ngClass]="group.is_global ? 'badge-accent' : 'badge-primary'">
+                                                    {{ group.is_global ? 'Global' : 'Private' }}
+                                                </span>
+                                                <span class="badge badge-xs badge-outline badge-secondary">
+                                                    {{ group.targets?.length || 0 }} targets
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
+                            <ng-template #noGroups>
+                                <div
+                                    class="rounded-box border border-dashed border-base-300 p-4 text-sm opacity-70 text-center">
+                                    No groups linked to this campaign
+                                </div>
+                            </ng-template>
                         </div>
                     </div>
 
-                    <ng-template #noGroups>
-                        <div class="rounded-box border border-dashed border-base-300 p-4 text-sm opacity-70 text-center">
-                            No groups linked to this campaign
-                        </div>
-                    </ng-template>
-                </div>
-            </div>
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body">
+                            <h2 class="card-title mb-4">Email Template</h2>
 
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">Email Template</h2>
+                            <div *ngIf="campaign.email_template as emailTemplate; else noEmailTemplate"
+                                class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Name</span>
+                                    <span class="font-medium">{{ emailTemplate.name }}</span>
+                                </div>
 
-                    <div *ngIf="campaign.email_template as emailTemplate; else noEmailTemplate"
-                        class="space-y-3 text-sm">
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Name</span>
-                            <span class="font-medium">{{ emailTemplate.name }}</span>
-                        </div>
+                                <div class="space-y-1">
+                                    <span class="opacity-60 block">Subject</span>
+                                    <p class="font-medium break-words">{{ emailTemplate.subject }}</p>
+                                </div>
+                            </div>
 
-                        <div class="space-y-1">
-                            <span class="opacity-60 block">Subject</span>
-                            <p class="font-medium break-words">{{ emailTemplate.subject }}</p>
-                        </div>
-                    </div>
-
-                    <ng-template #noEmailTemplate>
-                        <div class="text-sm opacity-60">
-                            No email template linked
-                        </div>
-                    </ng-template>
-                </div>
-            </div>
-
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">SMTP Profile</h2>
-
-                    <div *ngIf="campaign.smtp_profile as smtpProfile; else noSMTPProfile" class="space-y-3 text-sm">
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Name</span>
-                            <span class="font-medium">{{ smtpProfile.name }}</span>
-                        </div>
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Host</span>
-                            <span class="font-medium"><span class="badge badge-soft badge-secondary font-bold">
-                                    {{ smtpProfile.host }}:{{ smtpProfile.port }}
-                                </span></span>
-                        </div>
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Username</span>
-                            <span class="font-medium break-all text-right">{{ smtpProfile.username }}</span>
-                        </div>
-
-                        <div class="flex justify-between" *ngIf="smtpProfile.from_email">
-                            <span class="opacity-60">From</span>
-                            <span class="font-medium break-all text-right">
-                                {{ smtpProfile.from_name || smtpProfile.from_email }}
-                            </span>
+                            <ng-template #noEmailTemplate>
+                                <div class="text-sm opacity-60">
+                                    No email template linked
+                                </div>
+                            </ng-template>
                         </div>
                     </div>
 
-                    <ng-template #noSMTPProfile>
-                        <div class="text-sm opacity-60">
-                            No SMTP profile linked
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body">
+                            <h2 class="card-title mb-4">SMTP Profile</h2>
+
+                            <div *ngIf="campaign.smtp_profile as smtpProfile; else noSMTPProfile"
+                                class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Name</span>
+                                    <span class="font-medium">{{ smtpProfile.name }}</span>
+                                </div>
+
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Host</span>
+                                    <span class="font-medium"><span class="badge badge-soft badge-secondary font-bold">
+                                            {{ smtpProfile.host }}:{{ smtpProfile.port }}
+                                        </span></span>
+                                </div>
+
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Username</span>
+                                    <span class="font-medium break-all text-right">{{ smtpProfile.username }}</span>
+                                </div>
+
+                                <div class="flex justify-between" *ngIf="smtpProfile.from_email">
+                                    <span class="opacity-60">From</span>
+                                    <span class="font-medium break-all text-right">
+                                        {{ smtpProfile.from_name || smtpProfile.from_email }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <ng-template #noSMTPProfile>
+                                <div class="text-sm opacity-60">
+                                    No SMTP profile linked
+                                </div>
+                            </ng-template>
                         </div>
-                    </ng-template>
-                </div>
-            </div>
+                    </div>
 
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">Information</h2>
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body">
+                            <h2 class="card-title mb-4">Information</h2>
 
-                    <div class="space-y-3 text-sm">
+                            <div class="space-y-3 text-sm">
 
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Created At</span>
-                            <span class="font-medium">
-                                {{ campaign.created_at | date:'medium' }}
-                            </span>
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Created At</span>
+                                    <span class="font-medium">
+                                        {{ campaign.created_at | date:'medium' }}
+                                    </span>
+                                </div>
+
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Updated At</span>
+                                    <span class="font-medium">
+                                        {{ campaign.updated_at | date:'medium' }}
+                                    </span>
+                                </div>
+
+                                <div class="flex justify-between">
+                                    <span class="opacity-60">Launched At</span>
+                                    <span class="font-medium">
+                                        {{ campaign.launch_date | date:'medium' }}
+                                    </span>
+                                </div>
+
+                            </div>
+
                         </div>
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Updated At</span>
-                            <span class="font-medium">
-                                {{ campaign.updated_at | date:'medium' }}
-                            </span>
-                        </div>
-
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Launched At</span>
-                            <span class="font-medium">
-                                {{ campaign.launch_date | date:'medium' }}
-                            </span>
-                        </div>
-
                     </div>
 
                 </div>
+
             </div>
 
-        </div>
+            <label class="tab">
+                <input type="radio" name="campaign_detail_tabs" [checked]="activeTab === 'delivery'"
+                    (change)="setActiveTab('delivery')" />
+                <lucide-icon name="mailbox" size="16" class="me-2"></lucide-icon>
+                Target Delivery
+            </label>
+            <div class="tab-content bg-base-100 border border-base-300 p-6">
+                <div class="card bg-base-100 border border-base-300 shadow-sm pt-2">
+                    <div class="card-body">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="card-title">
+                                Target Delivery
+                            </h2>
 
-    </div>
+                            <span *ngIf="isEmailDeliveryInProgress()" class="badge badge-soft badge-warning gap-2">
+                                <span class="loading loading-spinner loading-xs"></span>
+                                Sending in background...
+                            </span>
+                        </div>
 
-    <div class="card bg-base-100 border border-base-300 shadow-sm mt-4 pt-2">
-        <div class="card-body">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="card-title">
-                    Target Delivery
-                </h2>
+                        <div class="stats shadow w-full mb-4 bg-base-100 border border-base-300">
+                            <div class="stat">
+                                <div class="stat-title">Targets</div>
+                                <div class="stat-value text-primary">{{ getExpectedTargetsCount() }}</div>
+                            </div>
 
-                <span *ngIf="isEmailDeliveryInProgress()" class="badge badge-warning gap-2">
-                    <span class="loading loading-spinner loading-xs"></span>
-                    Sending in background...
-                </span>
-            </div>
+                            <div class="stat">
+                                <div class="stat-title">Sent</div>
+                                <div class="stat-value text-success">{{ getCampaignTargetsSentCount() }}</div>
+                            </div>
 
-            <div class="stats shadow w-full bg-base-100 mb-4 border border-base-300">
-                <div class="stat">
-                    <div class="stat-title">Targets</div>
-                    <div class="stat-value text-primary">{{ getExpectedTargetsCount() }}</div>
-                </div>
+                            <div class="stat">
+                                <div class="stat-title">Pending</div>
+                                <div class="stat-value text-warning">{{ getCampaignTargetsPendingCount() }}</div>
+                            </div>
 
-                <div class="stat">
-                    <div class="stat-title">Sent</div>
-                    <div class="stat-value text-success">{{ getCampaignTargetsSentCount() }}</div>
-                </div>
+                            <div class="stat">
+                                <div class="stat-title">Failed</div>
+                                <div class="stat-value text-error">{{ getCampaignTargetsFailedCount() }}</div>
+                            </div>
 
-                <div class="stat">
-                    <div class="stat-title">Pending</div>
-                    <div class="stat-value text-warning">{{ getCampaignTargetsPendingCount() }}</div>
-                </div>
+                            <div class="stat">
+                                <div class="stat-title">Opened</div>
+                                <div class="stat-value text-info">{{ getCampaignTargetsOpenedCount() }}</div>
+                            </div>
 
-                <div class="stat">
-                    <div class="stat-title">Failed</div>
-                    <div class="stat-value text-error">{{ getCampaignTargetsFailedCount() }}</div>
-                </div>
+                            <div class="stat">
+                                <div class="stat-title">Clicked</div>
+                                <div class="stat-value text-accent">{{ getCampaignTargetsClickedCount() }}</div>
+                            </div>
+                        </div>
 
-                <div class="stat">
-                    <div class="stat-title">Opened</div>
-                    <div class="stat-value text-info">{{ getCampaignTargetsOpenedCount() }}</div>
-                </div>
+                        <div class="mb-4">
+                            <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+                                <lucide-icon name="search" size="18"></lucide-icon>
+                                <input type="text" class="grow" placeholder="Search targets..."
+                                    [(ngModel)]="dispatchSearchTerm" />
+                            </label>
+                        </div>
 
-                <div class="stat">
-                    <div class="stat-title">Clicked</div>
-                    <div class="stat-value text-accent">{{ getCampaignTargetsClickedCount() }}</div>
-                </div>
-            </div>
+                        <div class="mt-2 mb-4 w-full max-h-[520px] overflow-auto rounded-box border border-base-300">
+                            <table class="table-xs md:table-sm table table-zebra w-full">
+                                <thead>
+                                    <tr class="border-b-0">
+                                        <th class="bg-base-300 rounded-s-box lg:py-2">Target</th>
+                                        <th class="bg-base-300 lg:py-2">Email</th>
+                                        <th class="bg-base-300 lg:py-2">Position</th>
+                                        <th class="bg-base-300 lg:py-2">Opened</th>
+                                        <th class="bg-base-300 lg:py-2">Interaction</th>
+                                        <th class="bg-base-300 lg:py-2">Result</th>
+                                        <th class="bg-base-300 lg:py-2">Token</th>
+                                        <th class="bg-base-300 lg:py-2">Sent At</th>
+                                        <th class="bg-base-300 rounded-e-box lg:py-2">Submitted</th>
+                                    </tr>
+                                </thead>
 
-            <div class="mb-4">
-                <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
-                    <lucide-icon name="search" size="18"></lucide-icon>
-                    <input type="text" class="grow" placeholder="Search targets..." [(ngModel)]="dispatchSearchTerm" />
-                </label>
-            </div>
+                                <tbody>
+                                    <tr *ngIf="getFilteredCampaignTargets().length === 0">
+                                        <td colspan="9" class="text-center text-gray-500 py-4">
+                                            {{ dispatchSearchTerm ? 'No matches for this search.' : 'No campaign targets
+                                            yet.' }}
+                                        </td>
+                                    </tr>
 
-            <div class="mt-2 mb-4 w-full max-h-[520px] overflow-auto rounded-box border border-base-300">
-                <table class="table-xs md:table-sm table table-zebra w-full">
-                    <thead>
-                        <tr class="border-b-0">
-                            <th class="bg-base-300 rounded-s-box lg:py-2">Target</th>
-                            <th class="bg-base-300 lg:py-2">Email</th>
-                            <th class="bg-base-300 lg:py-2">Position</th>
-                            <th class="bg-base-300 lg:py-2">Opened</th>
-                            <th class="bg-base-300 lg:py-2">Interaction</th>
-                            <th class="bg-base-300 lg:py-2">Result</th>
-                            <th class="bg-base-300 lg:py-2">Token</th>
-                            <th class="bg-base-300 lg:py-2">Sent At</th>
-                            <th class="bg-base-300 rounded-e-box lg:py-2">Submitted</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr *ngIf="getFilteredCampaignTargets().length === 0">
-                            <td colspan="9" class="text-center text-gray-500 py-4">
-                                {{ dispatchSearchTerm ? 'No matches for this search.' : 'No campaign targets yet.' }}
-                            </td>
-                        </tr>
-
-                        <tr *ngFor="let target of getFilteredCampaignTargets()">
-                            <td class="font-semibold">
-                                {{ getTargetDisplayName(target) }}
-                            </td>
-                            <td>
-                                <span class="badge badge-soft badge-sm">{{ target.target?.email || '-' }}</span>
-                            </td>
-                            <td>
-                                {{ target.target?.position || '-' }}
-                            </td>
-                            <td>
-                                <span class="badge badge-soft badge-sm font-bold"
-                                    [ngClass]="isEmailOpened(target) ? 'badge-success' : 'badge-ghost'">
-                                    {{ isEmailOpened(target) ? 'Yes' : 'No' }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge badge-soft badge-sm font-bold"
-                                    [ngClass]="getTargetInteractionBadge(target)">
-                                    {{ getTargetInteractionLabel(target) }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge badge-soft badge-sm font-bold" [ngClass]="{
+                                    <tr *ngFor="let target of getFilteredCampaignTargets()">
+                                        <td class="font-semibold">
+                                            {{ getTargetDisplayName(target) }}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-soft badge-sm">{{ target.target?.email || '-'
+                                                }}</span>
+                                        </td>
+                                        <td>
+                                            {{ target.target?.position || '-' }}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-soft badge-sm font-bold"
+                                                [ngClass]="isEmailOpened(target) ? 'badge-success' : 'badge-ghost'">
+                                                {{ isEmailOpened(target) ? 'Yes' : 'No' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-soft badge-sm font-bold"
+                                                [ngClass]="getTargetInteractionBadge(target)">
+                                                {{ getTargetInteractionLabel(target) }}
+                                            </span>
+                                        </td>
+                                        <td class="cursor-pointer hover:bg-base-200/60 transition-colors"
+                                            (click)="goToResultsTab(target)">
+                                            <span class="badge badge-soft badge-sm font-bold" [ngClass]="{
             'badge-success': target.result?.status === 'completed',
             'badge-warning': target.result?.status === 'in_progress',
             'badge-error': target.result?.status === 'abandoned'
           }">
-                                    {{ target.result?.status || '-' }}
-                                </span>
-                                <div class="text-xs opacity-70 mt-1" *ngIf="target.result?.session_id">
-                                    {{ target.result?.session_id | slice:0:8 }}...
-                                </div>
-                            </td>
-                            <td class="font-mono text-xs">
-                                {{ target.token | slice:0:12 }}...
-                            </td>
-                            <td>
-                                {{ target.email_sent_at ? (target.email_sent_at | date:'short') : '-' }}
-                            </td>
-                            <td>
-                                {{ target.submitted_at ? (target.submitted_at | date:'short') : '-' }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                                {{ target.result?.status || '-' }}
+                                            </span>
+                                            <div class="text-xs opacity-70 mt-1" *ngIf="target.result?.session_id">
+                                                {{ target.result?.session_id | slice:0:8 }}...
+                                            </div>
+                                        </td>
+                                        <td class="font-mono text-xs">
+                                            {{ target.token | slice:0:12 }}...
+                                        </td>
+                                        <td>
+                                            {{ target.email_sent_at ? (target.email_sent_at | date:'short') : '-' }}
+                                        </td>
+                                        <td>
+                                            {{ target.submitted_at ? (target.submitted_at | date:'short') : '-' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </div>
-    </div>
 
-    <div class="card bg-base-100 border border-base-300 shadow-sm mt-4 pt-2">
-        <div class="card-body">
-
-            <h2 class="card-title mb-4">
+            <label class="tab">
+                <input type="radio" name="campaign_detail_tabs" [checked]="activeTab === 'results'"
+                    (change)="setActiveTab('results')" />
+                <lucide-icon name="chart-no-axes-combined" size="16" class="me-2"></lucide-icon>
                 Results
-            </h2>
+            </label>
+            <div class="tab-content bg-base-100 border border-base-300 p-6">
+                <div class="">
+                    <div class="card-body">
 
-            <div class="mb-4">
-                <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
-                    <lucide-icon name="search" size="18"></lucide-icon>
-                    <input type="text" class="grow" placeholder="Search results and events..."
-                        [(ngModel)]="eventSearchTerm" />
-                </label>
-            </div>
+                        <h2 class="card-title mb-4">
+                            Results
+                        </h2>
 
-            <div class="mt-2 mb-10 w-full max-h-[520px] overflow-auto rounded-box border border-base-300">
+                        <div class="mb-4">
+                            <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+                                <lucide-icon name="search" size="18"></lucide-icon>
+                                <input type="text" class="grow" placeholder="Search results and events..."
+                                    [(ngModel)]="eventSearchTerm" />
+                            </label>
+                        </div>
 
-                <table class="table-xs md:table-sm table table-zebra w-full">
+                        <div class="mt-2 mb-10 w-full max-h-[520px] overflow-auto rounded-box border border-base-300">
 
-                    <thead>
-                        <tr class="border-b-0">
-                            <th class="bg-base-300 rounded-s-box lg:py-2 w-12">#</th>
-                            <th class="bg-base-300 lg:py-2">Email</th>
-                            <th class="bg-base-300 lg:py-2">User</th>
-                            <th class="bg-base-300 lg:py-2">Password</th>
-                            <th class="bg-base-300 lg:py-2">Session</th>
-                            <th class="bg-base-300 lg:py-2">IP</th>
-                            <th class="bg-base-300 lg:py-2">Device</th>
-                            <th class="bg-base-300 lg:py-2">Browser</th>
-                            <th class="bg-base-300 lg:py-2">Status</th>
-                            <th class="bg-base-300 ">Captured</th>
-                            <th class="bg-base-300 w-16 rounded-e-box lg:py-2">Actions</th>
-                        </tr>
-                    </thead>
+                            <table class="table-xs md:table-sm table table-zebra w-full">
 
-                    <tbody>
+                                <thead>
+                                    <tr class="border-b-0">
+                                        <th class="bg-base-300 rounded-s-box lg:py-2 w-12">#</th>
+                                        <th class="bg-base-300 lg:py-2">Email</th>
+                                        <th class="bg-base-300 lg:py-2">User</th>
+                                        <th class="bg-base-300 lg:py-2">Password</th>
+                                        <th class="bg-base-300 lg:py-2">Session</th>
+                                        <th class="bg-base-300 lg:py-2">IP</th>
+                                        <th class="bg-base-300 lg:py-2">Device</th>
+                                        <th class="bg-base-300 lg:py-2">Browser</th>
+                                        <th class="bg-base-300 lg:py-2">Status</th>
+                                        <th class="bg-base-300 ">Captured</th>
+                                        <th class="bg-base-300 w-16 rounded-e-box lg:py-2">Actions</th>
+                                    </tr>
+                                </thead>
 
-                        <tr *ngIf="getFilteredResults().length === 0">
-                            <td colspan="11" class="text-center text-gray-500 py-4">
-                                {{ eventSearchTerm ? 'No matches for this search.' : 'No results captured yet.' }}
-                            </td>
-                        </tr>
+                                <tbody>
 
-                        <ng-container *ngFor="let r of getFilteredResults(); let i = index">
+                                    <tr *ngIf="getFilteredResults().length === 0">
+                                        <td colspan="11" class="text-center text-gray-500 py-4">
+                                            {{ eventSearchTerm ? 'No matches for this search.' : 'No results captured
+                                            yet.' }}
+                                        </td>
+                                    </tr>
 
-                            <!-- RESULT ROW -->
-                            <tr class="cursor-pointer transition-colors" (click)="toggleResult(r.id)" [ngClass]="{
+                                    <ng-container *ngFor="let r of getFilteredResults(); let i = index">
+
+                                        <!-- RESULT ROW -->
+                                        <tr class="cursor-pointer transition-colors" (click)="toggleResult(r.id)"
+                                            [ngClass]="{
             'bg-base-200': expandedResultId === r.id,
             'hover:bg-base-200': expandedResultId !== r.id
           }">
 
-                                <td class="font-bold">{{ i + 1 }}</td>
+                                            <td class="font-bold">{{ i + 1 }}</td>
 
 
 
-                                <td>
-                                    <div class="flex flex-col">
-                                        <span class="badge badge-soft badge-sm font-bold w-fit">
-                                            {{ r.email }}
-                                        </span>
-                                    </div>
-                                </td>
-                                <!-- USER -->
-                                <td>
-                                    <div class="flex flex-col">
-                                        <span class="badge badge-soft badge-sm font-bold w-fit">
-                                            {{ r.username }}
-                                        </span>
-                                    </div>
-                                </td>
+                                            <td>
+                                                <div class="flex flex-col">
+                                                    <span class="badge badge-soft badge-sm font-bold w-fit">
+                                                        {{ r.email }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <!-- USER -->
+                                            <td>
+                                                <div class="flex flex-col">
+                                                    <span class="badge badge-soft badge-sm font-bold w-fit">
+                                                        {{ r.username }}
+                                                    </span>
+                                                </div>
+                                            </td>
 
-                                <td>
-                                    <span class="text-xs text-secondary font-mono">
-                                        {{ r.password }}
-                                    </span>
-                                </td>
+                                            <td>
+                                                <span class="text-xs text-secondary font-mono">
+                                                    {{ r.password }}
+                                                </span>
+                                            </td>
 
-                                <!-- SESSION -->
-                                <td class="font-mono text-xs">
-                                    {{ r.session_id | slice:0:8 }}...
-                                </td>
+                                            <!-- SESSION -->
+                                            <td class="font-mono text-xs">
+                                                {{ r.session_id | slice:0:8 }}...
+                                            </td>
 
-                                <!-- IP -->
-                                <td>
-                                    <span class="badge badge-outline badge-sm">
-                                        {{ r.ip }}
-                                    </span>
-                                </td>
+                                            <!-- IP -->
+                                            <td>
+                                                <span class="badge badge-outline badge-sm">
+                                                    {{ r.ip }}
+                                                </span>
+                                            </td>
 
-                                <!-- DEVICE -->
-                                <td>
-                                    <div class="flex items-center gap-2 text-sm">
-                                        <span class="capitalize">{{ r.device }}</span>
-                                        <span class="opacity-60 text-xs">{{ r.os }}</span>
-                                    </div>
-                                </td>
+                                            <!-- DEVICE -->
+                                            <td>
+                                                <div class="flex items-center gap-2 text-sm">
+                                                    <span class="capitalize">{{ r.device }}</span>
+                                                    <span class="opacity-60 text-xs">{{ r.os }}</span>
+                                                </div>
+                                            </td>
 
-                                <!-- BROWSER / USER AGENT -->
-                                <td>
-                                    <div class="flex items-center gap-2 text-sm">
-                                        <fa-icon [icon]="getUAIcon(r.user_agent)" class=""></fa-icon>
-                                        <span>{{ shortenUserAgent(r.user_agent) }}</span>
-                                    </div>
-                                </td>
+                                            <!-- BROWSER / USER AGENT -->
+                                            <td>
+                                                <div class="flex items-center gap-2 text-sm">
+                                                    <fa-icon [icon]="getUAIcon(r.user_agent)" class=""></fa-icon>
+                                                    <span>{{ shortenUserAgent(r.user_agent) }}</span>
+                                                </div>
+                                            </td>
 
-                                <!-- STATUS -->
-                                <td>
-                                    <span class="badge badge-soft badge-sm font-bold" [ngClass]="{
+                                            <!-- STATUS -->
+                                            <td>
+                                                <span class="badge badge-soft badge-sm font-bold" [ngClass]="{
             'badge-success': r.status === 'completed',
             'badge-warning': r.status === 'in_progress',
             'badge-error': r.status === 'abandoned'
           }">
-                                        {{ r.status }}
-                                    </span>
-                                </td>
+                                                    {{ r.status }}
+                                                </span>
+                                            </td>
 
-                                <!-- DATE -->
-                                <td>
-                                    {{ r.created_at | date:'short' }}
-                                </td>
+                                            <!-- DATE -->
+                                            <td>
+                                                {{ r.created_at | date:'short' }}
+                                            </td>
 
-                                <td>
-                                    <button class="btn btn-xs btn-error btn-outline" (click)="confirmDelete(r, $event)">
-                                        Delete
-                                    </button>
-                                </td>
+                                            <td>
+                                                <button class="btn btn-xs btn-error btn-outline"
+                                                    (click)="confirmDelete(r, $event)">
+                                                    Delete
+                                                </button>
+                                            </td>
 
-                            </tr>
+                                        </tr>
 
-                            <tr *ngIf="expandedResultId === r.id">
-                                <td colspan="11" class="p-0">
+                                        <tr *ngIf="expandedResultId === r.id">
+                                            <td colspan="11" class="p-0">
 
-                                    <div
-                                        class="collapse collapse-open bg-base-100 border border-base-300 rounded-b-box">
+                                                <div
+                                                    class="collapse collapse-open bg-base-100 border border-base-300 rounded-b-box">
 
-                                        <div class="collapse-title font-semibold">
-                                            Events for
-                                            <span class="text-primary font-bold">
-                                                {{ r.username }}
-                                            </span>
-                                        </div>
+                                                    <div class="collapse-title font-semibold">
+                                                        Events for
+                                                        <span class="text-primary font-bold">
+                                                            {{ r.username }}
+                                                        </span>
+                                                    </div>
 
-                                        <div class="collapse-content">
-                                            <table class="table table-xs md:table-sm w-full">
+                                                    <div class="collapse-content">
+                                                        <table class="table table-xs md:table-sm w-full">
 
-                                                <thead>
-                                                    <tr>
-                                                        <th>Type</th>
-                                                        <th>Step</th>
-                                                        <th>Path</th>
-                                                        <th>Useragent</th>
-                                                        <th>IP</th>
-                                                        <th>Referrer</th>
-                                                        <th>Metadata</th>
-                                                        <th>Date</th>
-                                                    </tr>
-                                                </thead>
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Type</th>
+                                                                    <th>Step</th>
+                                                                    <th>Path</th>
+                                                                    <th>Useragent</th>
+                                                                    <th>IP</th>
+                                                                    <th>Referrer</th>
+                                                                    <th>Metadata</th>
+                                                                    <th>Date</th>
+                                                                </tr>
+                                                            </thead>
 
-                                                <tbody>
+                                                            <tbody>
 
-                                                    <tr *ngFor="let e of getEventsByResult(r.id)">
+                                                                <tr *ngFor="let e of getEventsByResult(r.id)">
 
-                                                        <!-- TYPE BADGE -->
-                                                        <td>
-                                                            <span class="badge badge-soft badge-xs font-bold"
-                                                                [ngClass]="getEventBadge(e.type)">
-                                                                {{ e.type }}
-                                                            </span>
-                                                        </td>
+                                                                    <!-- TYPE BADGE -->
+                                                                    <td>
+                                                                        <span
+                                                                            class="badge badge-soft badge-xs font-bold"
+                                                                            [ngClass]="getEventBadge(e.type)">
+                                                                            {{ e.type }}
+                                                                        </span>
+                                                                    </td>
 
-                                                        <td class="font-mono text-xs">
-                                                            {{ e.step_id }}
-                                                        </td>
+                                                                    <td class="font-mono text-xs">
+                                                                        {{ e.step_id }}
+                                                                    </td>
 
-                                                        <td class="text-xs truncate max-w-[200px]" title="{{ e.path }}">
-                                                            {{ e.path }}
-                                                        </td>
-                                                        <td class="text-xs truncate max-w-[200px]"
-                                                            title="{{ e.user_agent }}">
-                                                            <span>{{ shortenUserAgent(e.user_agent) }}</span>
-                                                        </td>
+                                                                    <td class="text-xs truncate max-w-[200px]"
+                                                                        title="{{ e.path }}">
+                                                                        {{ e.path }}
+                                                                    </td>
+                                                                    <td class="text-xs truncate max-w-[200px]"
+                                                                        title="{{ e.user_agent }}">
+                                                                        <span>{{ shortenUserAgent(e.user_agent)
+                                                                            }}</span>
+                                                                    </td>
 
-                                                        <td class="text-xs">
-                                                            {{ e.ip }}
-                                                        </td>
+                                                                    <td class="text-xs">
+                                                                        {{ e.ip }}
+                                                                    </td>
 
-                                                        <td class="text-xs truncate max-w-[150px]"
-                                                            title="{{ e.referrer }}">
-                                                            {{ e.referrer || '—' }}
-                                                        </td>
+                                                                    <td class="text-xs truncate max-w-[150px]"
+                                                                        title="{{ e.referrer }}">
+                                                                        {{ e.referrer || '—' }}
+                                                                    </td>
 
-                                                        <td class="text-xs">
+                                                                    <td class="text-xs">
 
-                                                            <button *ngIf="e.metadata"
-                                                                (click)="openMetadataModal(e.metadata); $event.stopPropagation()"
-                                                                class="btn btn-xs btn-outline btn-info">
-                                                                View
-                                                            </button>
+                                                                        <button *ngIf="e.metadata"
+                                                                            (click)="openMetadataModal(e.metadata); $event.stopPropagation()"
+                                                                            class="btn btn-xs btn-outline btn-info">
+                                                                            View
+                                                                        </button>
 
-                                                            <span *ngIf="!e.metadata" class="opacity-40">—</span>
+                                                                        <span *ngIf="!e.metadata"
+                                                                            class="opacity-40">—</span>
 
-                                                        </td>
+                                                                    </td>
 
-                                                        <td class="text-xs">
-                                                            {{ e.created_at | date:'shortTime' }}
-                                                        </td>
+                                                                    <td class="text-xs">
+                                                                        {{ e.created_at | date:'shortTime' }}
+                                                                    </td>
 
-                                                    </tr>
+                                                                </tr>
 
-                                                    <tr *ngIf="!r.events || r.events.length === 0">
-                                                        <td colspan="6" class="text-center text-gray-400">
-                                                            No events recorded.
-                                                        </td>
-                                                    </tr>
+                                                                <tr *ngIf="!r.events || r.events.length === 0">
+                                                                    <td colspan="6" class="text-center text-gray-400">
+                                                                        No events recorded.
+                                                                    </td>
+                                                                </tr>
 
-                                                </tbody>
+                                                            </tbody>
 
-                                            </table>
+                                                        </table>
 
-                                        </div>
+                                                    </div>
 
-                                    </div>
+                                                </div>
 
-                                </td>
-                            </tr>
+                                            </td>
+                                        </tr>
 
-                        </ng-container>
+                                    </ng-container>
 
-                    </tbody>
+                                </tbody>
 
-                </table>
+                            </table>
 
+                        </div>
+
+                    </div>
+                </div>
             </div>
-
         </div>
     </div>
-</div>
-<dialog id="metadata_modal" class="modal">
+    <dialog id="metadata_modal" class="modal">
 
-    <div class="modal-box max-w-3xl">
+        <div class="modal-box max-w-3xl">
 
-        <h3 class="font-bold text-lg mb-4">
-            Event Metadata
-        </h3>
+            <h3 class="font-bold text-lg mb-4">
+                Event Metadata
+            </h3>
 
-        <div class="bg-base-200 rounded-box p-4 max-h-[500px] overflow-auto">
+            <div class="bg-base-200 rounded-box p-4 max-h-[500px] overflow-auto">
 
-            <pre class="text-xs">
+                <pre class="text-xs">
 {{ selectedMetadata | json }}
       </pre>
 
+            </div>
+
+            <div class="modal-action">
+                <button class="btn" (click)="closeMetadataModal()">
+                    Close
+                </button>
+            </div>
+
         </div>
 
-        <div class="modal-action">
-            <button class="btn" (click)="closeMetadataModal()">
-                Close
-            </button>
-        </div>
-
-    </div>
-
-    <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-    </form>
-
-</dialog>
-
-<dialog id="edit_campaign_modal" class="modal">
-    <div class="modal-box max-w-lg">
-
-        <h3 class="font-bold text-lg mb-4">
-            Edit Campaign
-        </h3>
-
-        <form class="space-y-4">
-
-            <!-- Campaign name -->
-            <div>
-                <label class="label">
-                    <span class="label-text">Campaign Name</span>
-                </label>
-
-                <input type="text" class="input input-bordered w-full" [(ngModel)]="editCampaignData.name"
-                    name="name" />
-            </div>
-
-            <!-- Template -->
-            <div>
-                <label class="label">
-                    <span class="label-text">Template</span>
-                </label>
-
-                <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.template_id"
-                    name="template_id" [disabled]="loadingTemplates">
-
-                    <option value="" disabled>
-                        {{ loadingTemplates ? 'Loading templates...' : 'Select a template' }}
-                    </option>
-
-                    <option *ngFor="let t of templates" [ngValue]="t.filename">
-                        {{ t.name || t.filename }}
-                    </option>
-
-                </select>
-
-            </div>
-
-            <!-- Groups -->
-            <div>
-                <label class="label">
-                    <span class="label-text">Groups</span>
-                </label>
-
-                <div class="dropdown w-full">
-                    <div tabindex="0" role="button" class="btn btn-outline w-full justify-between"
-                        [class.btn-disabled]="loadingGroups">
-                        <span>{{ loadingGroups ? 'Loading groups...' : getEditGroupsDropdownLabel() }}</span>
-                        <span class="opacity-70">▼</span>
-                    </div>
-
-                    <ul tabindex="0"
-                        class="dropdown-content menu bg-base-100 rounded-box z-[100] w-full p-2 shadow border border-base-300 max-h-64 overflow-y-auto">
-
-                        <li *ngIf="!loadingGroups && groups.length === 0" class="px-3 py-2 opacity-70 text-sm">
-                            No groups available
-                        </li>
-
-                        <li *ngFor="let group of groups">
-                            <label class="label cursor-pointer justify-start gap-3 px-2">
-                                <input type="checkbox" class="checkbox checkbox-sm"
-                                    [checked]="isEditGroupSelected(group.id)"
-                                    (change)="toggleEditGroupSelection(group.id, $any($event.target).checked)" />
-                                <span>{{ group.name }}</span>
-                            </label>
-                        </li>
-
-                    </ul>
-                </div>
-
-                <div *ngIf="getEditSelectedGroups().length > 0" class="mt-2 flex flex-wrap gap-2">
-                    <span *ngFor="let selectedGroup of getEditSelectedGroups()"
-                        class="badge badge-soft badge-secondary gap-1">
-                        {{ selectedGroup.name }}
-                        <button type="button" class="cursor-pointer"
-                            (click)="removeEditGroupSelection(selectedGroup.id)">×</button>
-                    </span>
-                </div>
-            </div>
-
-            <!-- SMTP Profile -->
-            <div>
-                <label class="label">
-                    <span class="label-text">SMTP Profile</span>
-                </label>
-
-                <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.smtp_profile_id"
-                    name="smtp_profile_id" [disabled]="loadingSMTPProfiles">
-
-                    <option [ngValue]="null">
-                        {{ loadingSMTPProfiles ? 'Loading SMTP profiles...' : 'No SMTP profile' }}
-                    </option>
-
-                    <option *ngFor="let profile of smtpProfiles" [ngValue]="profile.id">
-                        {{ profile.name }} ({{ profile.host }}:{{ profile.port }})
-                    </option>
-
-                </select>
-            </div>
-
-            <!-- Email Template -->
-            <div>
-                <label class="label">
-                    <span class="label-text">Email Template</span>
-                </label>
-
-                <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.email_template_id"
-                    name="email_template_id" [disabled]="loadingEmailTemplates">
-
-                    <option [ngValue]="null">
-                        {{ loadingEmailTemplates ? 'Loading email templates...' : 'No email template' }}
-                    </option>
-
-                    <option *ngFor="let emailTemplate of emailTemplates" [ngValue]="emailTemplate.id">
-                        {{ emailTemplate.name }}
-                    </option>
-
-                </select>
-            </div>
-            <!-- Dev Mode -->
-            <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
-                <legend class="fieldset-legend">Development Mode</legend>
-
-                <label class="label cursor-pointer gap-3">
-                    <input type="checkbox" name="dev_mode" class="checkbox checkbox-warning"
-                        [(ngModel)]="editCampaignData.dev_mode" />
-
-                    <span class="label-text">
-                        Enable campaign development mode
-                    </span>
-                </label>
-
-                <p class="text-xs opacity-70 mt-1">
-                    Development mode allows modifying the campaign template even while the campaign is active.
-                    This is useful for testing and adjusting phishing pages during development.
-                </p>
-            </fieldset>
-
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
         </form>
 
-        <!-- Actions -->
-        <div class="modal-action">
+    </dialog>
 
-            <form method="dialog">
-                <button class="btn">
-                    Cancel
-                </button>
+    <dialog id="edit_campaign_modal" class="modal">
+        <div class="modal-box max-w-lg">
+
+            <h3 class="font-bold text-lg mb-4">
+                Edit Campaign
+            </h3>
+
+            <form class="space-y-4">
+
+                <!-- Campaign name -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">Campaign Name</span>
+                    </label>
+
+                    <input type="text" class="input input-bordered w-full" [(ngModel)]="editCampaignData.name"
+                        name="name" />
+                </div>
+
+                <!-- Template -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">Template</span>
+                    </label>
+
+                    <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.template_id"
+                        name="template_id" [disabled]="loadingTemplates">
+
+                        <option value="" disabled>
+                            {{ loadingTemplates ? 'Loading templates...' : 'Select a template' }}
+                        </option>
+
+                        <option *ngFor="let t of templates" [ngValue]="t.filename">
+                            {{ t.name || t.filename }}
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <!-- Groups -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">Groups</span>
+                    </label>
+
+                    <div class="dropdown w-full">
+                        <div tabindex="0" role="button" class="btn btn-outline w-full justify-between"
+                            [class.btn-disabled]="loadingGroups">
+                            <span>{{ loadingGroups ? 'Loading groups...' : getEditGroupsDropdownLabel() }}</span>
+                            <span class="opacity-70">▼</span>
+                        </div>
+
+                        <ul tabindex="0"
+                            class="dropdown-content menu bg-base-100 rounded-box z-[100] w-full p-2 shadow border border-base-300 max-h-64 overflow-y-auto">
+
+                            <li *ngIf="!loadingGroups && groups.length === 0" class="px-3 py-2 opacity-70 text-sm">
+                                No groups available
+                            </li>
+
+                            <li *ngFor="let group of groups">
+                                <label class="label cursor-pointer justify-start gap-3 px-2">
+                                    <input type="checkbox" class="checkbox checkbox-sm"
+                                        [checked]="isEditGroupSelected(group.id)"
+                                        (change)="toggleEditGroupSelection(group.id, $any($event.target).checked)" />
+                                    <span>{{ group.name }}</span>
+                                </label>
+                            </li>
+
+                        </ul>
+                    </div>
+
+                    <div *ngIf="getEditSelectedGroups().length > 0" class="mt-2 flex flex-wrap gap-2">
+                        <span *ngFor="let selectedGroup of getEditSelectedGroups()"
+                            class="badge badge-soft badge-secondary gap-1">
+                            {{ selectedGroup.name }}
+                            <button type="button" class="cursor-pointer"
+                                (click)="removeEditGroupSelection(selectedGroup.id)">×</button>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- SMTP Profile -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">SMTP Profile</span>
+                    </label>
+
+                    <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.smtp_profile_id"
+                        name="smtp_profile_id" [disabled]="loadingSMTPProfiles">
+
+                        <option [ngValue]="null">
+                            {{ loadingSMTPProfiles ? 'Loading SMTP profiles...' : 'No SMTP profile' }}
+                        </option>
+
+                        <option *ngFor="let profile of smtpProfiles" [ngValue]="profile.id">
+                            {{ profile.name }} ({{ profile.host }}:{{ profile.port }})
+                        </option>
+
+                    </select>
+                </div>
+
+                <!-- Email Template -->
+                <div>
+                    <label class="label">
+                        <span class="label-text">Email Template</span>
+                    </label>
+
+                    <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.email_template_id"
+                        name="email_template_id" [disabled]="loadingEmailTemplates">
+
+                        <option [ngValue]="null">
+                            {{ loadingEmailTemplates ? 'Loading email templates...' : 'No email template' }}
+                        </option>
+
+                        <option *ngFor="let emailTemplate of emailTemplates" [ngValue]="emailTemplate.id">
+                            {{ emailTemplate.name }}
+                        </option>
+
+                    </select>
+                </div>
+                <!-- Dev Mode -->
+                <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
+                    <legend class="fieldset-legend">Development Mode</legend>
+
+                    <label class="label cursor-pointer gap-3">
+                        <input type="checkbox" name="dev_mode" class="checkbox checkbox-warning"
+                            [(ngModel)]="editCampaignData.dev_mode" />
+
+                        <span class="label-text">
+                            Enable campaign development mode
+                        </span>
+                    </label>
+
+                    <p class="text-xs opacity-70 mt-1">
+                        Development mode allows modifying the campaign template even while the campaign is active.
+                        This is useful for testing and adjusting phishing pages during development.
+                    </p>
+                </fieldset>
+
             </form>
 
-            <button class="btn btn-primary" (click)="saveCampaignEdit()">
-                Save Changes
-            </button>
+            <!-- Actions -->
+            <div class="modal-action">
 
-        </div>
+                <form method="dialog">
+                    <button class="btn">
+                        Cancel
+                    </button>
+                </form>
 
-    </div>
-</dialog>
-
-<dialog id="dev_mode_error_modal" class="modal">
-    <div class="modal-box">
-        <h3 class="font-bold text-lg text-error">Email Sending Blocked</h3>
-
-        <p class="py-4">
-            {{ devModeErrorMessage }}
-        </p>
-
-        <div class="modal-action">
-            <button class="btn btn-error" (click)="closeDevModeErrorModal()">OK</button>
-        </div>
-    </div>
-
-    <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-    </form>
-</dialog>
-
-
-<dialog id="delete_campaign_modal" class="modal">
-
-    <div class="modal-box">
-
-        <h3 class="font-bold text-lg">
-            Delete Campaign
-        </h3>
-
-        <p class="py-4">
-            Are you sure you want to delete this campaign?
-            <br><br>
-            <span class="font-semibold">
-                {{ campaign.name }}
-            </span>
-        </p>
-
-        <div class="modal-action">
-
-            <form method="dialog">
-                <button class="btn">
-                    Cancel
+                <button class="btn btn-primary" (click)="saveCampaignEdit()">
+                    Save Changes
                 </button>
-            </form>
 
-            <button class="btn btn-error" (click)="deleteCampaign()">
-                <fa-icon [icon]="faDelete"></fa-icon>
-                Delete
-            </button>
+            </div>
+
+        </div>
+    </dialog>
+
+    <dialog id="dev_mode_error_modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg text-error">Email Sending Blocked</h3>
+
+            <p class="py-4">
+                {{ devModeErrorMessage }}
+            </p>
+
+            <div class="modal-action">
+                <button class="btn btn-error" (click)="closeDevModeErrorModal()">OK</button>
+            </div>
+        </div>
+
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+
+    <dialog id="delete_campaign_modal" class="modal">
+
+        <div class="modal-box">
+
+            <h3 class="font-bold text-lg">
+                Delete Campaign
+            </h3>
+
+            <p class="py-4">
+                Are you sure you want to delete this campaign?
+                <br><br>
+                <span class="font-semibold">
+                    {{ campaign.name }}
+                </span>
+            </p>
+
+            <div class="modal-action">
+
+                <form method="dialog">
+                    <button class="btn">
+                        Cancel
+                    </button>
+                </form>
+
+                <button class="btn btn-error" (click)="deleteCampaign()">
+                    <fa-icon [icon]="faDelete"></fa-icon>
+                    Delete
+                </button>
+
+            </div>
 
         </div>
 
-    </div>
+    </dialog>
 
-</dialog>
+    <dialog id="deleteResultModal" class="modal">
+        <div class="modal-box">
 
-<dialog id="deleteResultModal" class="modal">
-    <div class="modal-box">
+            <h3 class="font-bold text-lg">Delete Result</h3>
 
-        <h3 class="font-bold text-lg">Delete Result</h3>
+            <p class="py-4">
+                Are you sure you want to delete the result for
+                <span class="font-bold text-error">
+                    {{ resultToDelete?.username || resultToDelete?.email }}
+                </span>?
+            </p>
 
-        <p class="py-4">
-            Are you sure you want to delete the result for
-            <span class="font-bold text-error">
-                {{ resultToDelete?.username || resultToDelete?.email }}
-            </span>?
-        </p>
+            <div class="modal-action">
+                <button class="btn" (click)="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-error" (click)="deleteResult()">Delete</button>
+            </div>
 
-        <div class="modal-action">
-            <button class="btn" (click)="closeDeleteModal()">Cancel</button>
-            <button class="btn btn-error" (click)="deleteResult()">Delete</button>
         </div>
-
-    </div>
-</dialog>
+    </dialog>
