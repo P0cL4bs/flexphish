@@ -5,7 +5,7 @@
 .email-preview {
   --thumb-height: 14rem;
   --source-width: 800;
-  --source-height: 2200;
+  --source-height: 4200;
   width: 100%;
   height: var(--thumb-height);
   overflow: hidden;
@@ -24,9 +24,10 @@
   width: calc(var(--source-width) * 1px);
   height: calc(var(--source-height) * 1px);
   transform-origin: top left;
-  transform:
-    scaleX(calc(100% / (var(--source-width) * 1px)))
-    scaleY(calc(var(--thumb-height) / (var(--source-height) * 1px)));
+  transform: scale(min(
+    calc(100% / (var(--source-width) * 1px)),
+    calc(var(--thumb-height) / (var(--source-height) * 1px))
+  ));
   pointer-events: none;
 }
 
