@@ -62,6 +62,22 @@ func (r *CampaignRepository) GetByID(id int64, userId int64) (*campaign.Campaign
 	return &c, nil
 }
 
+func (r *CampaignRepository) ListScheduledStartCandidates(now time.Time) ([]campaign.Campaign, error) {
+	var campaigns []campaign.Campaign
+
+	err := r.db.
+		Where("status = ? AND launch_date IS NOT NULL AND launch_date <= ? AND is_archived = ? AND deleted_at IS NULL",
+			campaign.StatusScheduled, now, false).
+		Order("launch_date ASC").
+		Order("id ASC").
+		Find(&campaigns).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return campaigns, nil
+}
+
 func (r *CampaignRepository) ListEmailDispatchCandidates() ([]campaign.Campaign, error) {
 	var campaigns []campaign.Campaign
 
@@ -354,6 +370,34 @@ func (r *CampaignRepository) HasActiveCampaignUsingTemplate(templateId string) (
 	}
 
 	return count > 0, nil
+}
+
+func (r *CampaignRepository) ResetEmailDelivery(campaignID int64, userID int64) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var camp campaign.Campaign
+		if err := tx.Where("id = ? AND user_id = ?", campaignID, userID).First(&camp).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where("campaign_id = ?", campaignID).Delete(&campaign.CampaignTarget{}).Error; err != nil {
+			return err
+		}
+
+		return tx.Model(&campaign.Campaign{}).
+			Where("id = ? AND user_id = ?", campaignID, userID).
+			Updates(map[string]interface{}{
+				"email_dispatch_status":          campaign.EmailDispatchIdle,
+				"email_dispatch_queued_at":       nil,
+				"email_dispatch_started_at":      nil,
+				"email_dispatch_completed_at":    nil,
+				"email_dispatch_last_attempt_at": nil,
+				"email_dispatch_last_error":      "",
+				"email_dispatch_total_targets":   0,
+				"email_dispatch_sent":            0,
+				"email_dispatch_failed":          0,
+				"email_dispatch_pending":         0,
+			}).Error
+	})
 }
 
 func (r *CampaignRepository) GetTopCampaigns(userID int64) ([]campaign.TopCampaignMetric, error) {

@@ -44,26 +44,32 @@ func NewCampaignEmailScheduler(
 }
 
 func (s *CampaignEmailScheduler) Start() {
-	if !s.enabled {
-		logger.Log.Info("Campaign email scheduler disabled")
-		return
+	if s.enabled {
+		logger.Log.Info("Campaign email scheduler started",
+			zap.Duration("interval", s.interval),
+			zap.String("mode", "global_fifo_queue"),
+		)
+		go s.workerLoop()
+	} else {
+		logger.Log.Info("Campaign email dispatch queue disabled; scheduled campaign activation is still enabled",
+			zap.Duration("interval", s.interval),
+		)
 	}
 
-	logger.Log.Info("Campaign email scheduler started",
-		zap.Duration("interval", s.interval),
-		zap.String("mode", "global_fifo_queue"),
-	)
-
-	go s.workerLoop()
-
 	go func() {
-		s.processTick()
+		s.processScheduledCampaignStarts()
+		if s.enabled {
+			s.processTick()
+		}
 
 		ticker := time.NewTicker(s.interval)
 		defer ticker.Stop()
 
 		for range ticker.C {
-			s.processTick()
+			s.processScheduledCampaignStarts()
+			if s.enabled {
+				s.processTick()
+			}
 		}
 	}()
 }
@@ -114,6 +120,24 @@ func (s *CampaignEmailScheduler) processTick() {
 			logger.Log.Warn("email scheduler queue is full; campaign will be retried on next tick",
 				zap.Int64("campaign_id", camp.Id),
 				zap.Int("queue_depth", len(s.queue)),
+			)
+		}
+	}
+}
+
+func (s *CampaignEmailScheduler) processScheduledCampaignStarts() {
+	campaigns, err := s.repo.ListScheduledStartCandidates(time.Now().UTC())
+	if err != nil {
+		logger.Log.Error("scheduler tick failed to list scheduled campaigns", zap.Error(err))
+		return
+	}
+
+	for _, camp := range campaigns {
+		if err := s.handler.activateScheduledCampaign(camp.Id, camp.UserId); err != nil {
+			logger.Log.Error("failed to activate scheduled campaign",
+				zap.Int64("campaign_id", camp.Id),
+				zap.Int64("user_id", camp.UserId),
+				zap.Error(err),
 			)
 		}
 	}

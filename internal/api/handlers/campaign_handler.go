@@ -52,14 +52,16 @@ func (h *CampaignHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value("userID").(int64)
 	var input struct {
-		Name            string  `json:"name"`
-		TemplateID      string  `json:"template_id"`
-		Subdomain       string  `json:"subdomain"`
-		DevMode         bool    `json:"dev_mode"`
-		GroupIDs        []int64 `json:"group_ids"`
-		SMTPProfileID   int64   `json:"smtp_profile_id"`
-		EmailTemplateID int64   `json:"email_template_id"`
-		SendEmails      bool    `json:"send_emails"`
+		Name              string  `json:"name"`
+		TemplateID        string  `json:"template_id"`
+		Subdomain         string  `json:"subdomain"`
+		DevMode           bool    `json:"dev_mode"`
+		GroupIDs          []int64 `json:"group_ids"`
+		SMTPProfileID     int64   `json:"smtp_profile_id"`
+		EmailTemplateID   int64   `json:"email_template_id"`
+		SendEmails        bool    `json:"send_emails"`
+		ScheduledStartAt  string  `json:"scheduled_start_at"`
+		ScheduledTimezone string  `json:"scheduled_timezone"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -103,12 +105,27 @@ func (h *CampaignHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var launchDate *time.Time
+	initialStatus := campaign.StatusDraft
+	if strings.TrimSpace(input.ScheduledStartAt) != "" {
+		scheduledTime, err := parseScheduledStartAt(input.ScheduledStartAt, input.ScheduledTimezone)
+		if err != nil {
+			JSONResponse(w, http.StatusBadRequest, map[string]string{
+				"error": err.Error(),
+			})
+			return
+		}
+		launchDate = &scheduledTime
+		initialStatus = campaign.StatusScheduled
+	}
+
 	newCampaign := &campaign.Campaign{
 		UserId:          userID,
 		Name:            input.Name,
 		Subdomain:       input.Subdomain,
 		TemplateId:      input.TemplateID,
-		Status:          campaign.StatusDraft,
+		Status:          initialStatus,
+		LaunchDate:      launchDate,
 		DevMode:         input.DevMode,
 		Groups:          groups,
 		SMTPProfileId:   smtpProfileID,
@@ -235,6 +252,8 @@ func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
 		SMTPProfileID     *int64   `json:"smtp_profile_id"`
 		EmailTemplateID   *int64   `json:"email_template_id"`
 		SendEmails        *bool    `json:"send_emails"`
+		ScheduledStartAt  *string  `json:"scheduled_start_at"`
+		ScheduledTimezone *string  `json:"scheduled_timezone"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -249,6 +268,34 @@ func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if input.Status != nil {
 		existing.Status = campaign.CampaignStatus(*input.Status)
 	}
+
+	if input.ScheduledStartAt != nil {
+		scheduledStartAt := strings.TrimSpace(*input.ScheduledStartAt)
+		if scheduledStartAt == "" {
+			existing.LaunchDate = nil
+			if existing.Status == campaign.StatusScheduled {
+				existing.Status = campaign.StatusDraft
+			}
+		} else {
+			timezone := ""
+			if input.ScheduledTimezone != nil {
+				timezone = *input.ScheduledTimezone
+			}
+			scheduledTime, err := parseScheduledStartAt(scheduledStartAt, timezone)
+			if err != nil {
+				JSONResponse(w, http.StatusBadRequest, map[string]string{
+					"error": err.Error(),
+				})
+				return
+			}
+			existing.LaunchDate = &scheduledTime
+			if existing.Status != campaign.StatusActive {
+				existing.Status = campaign.StatusScheduled
+			}
+		}
+	}
+
+	shouldResetEmailDelivery := input.ScheduledStartAt != nil && strings.TrimSpace(*input.ScheduledStartAt) != ""
 
 	if input.TemplateRequestId != nil {
 		existing.TemplateId = *input.TemplateRequestId
@@ -317,6 +364,32 @@ func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
 			now := time.Now()
 			existing.LaunchDate = &now
 		}
+	} else if existing.Status == campaign.StatusScheduled {
+		if existing.LaunchDate == nil {
+			JSONResponse(w, http.StatusBadRequest, map[string]string{
+				"error": "scheduled campaigns require launch_date",
+			})
+			return
+		}
+		if shouldResetEmailDelivery {
+			if err := h.repo.ResetEmailDelivery(existing.Id, userID); err != nil {
+				JSONResponse(w, http.StatusInternalServerError, map[string]string{
+					"error": "failed to reset email delivery state",
+				})
+				return
+			}
+			existing.EmailDispatchStatus = campaign.EmailDispatchIdle
+			existing.EmailDispatchQueuedAt = nil
+			existing.EmailDispatchStartedAt = nil
+			existing.EmailDispatchCompletedAt = nil
+			existing.EmailDispatchLastAttemptAt = nil
+			existing.EmailDispatchLastError = ""
+			existing.EmailDispatchTotalTargets = 0
+			existing.EmailDispatchSent = 0
+			existing.EmailDispatchFailed = 0
+			existing.EmailDispatchPending = 0
+		}
+		existing.CompletedDate = nil
 	} else {
 		existing.LaunchDate = nil
 		existing.CompletedDate = nil
@@ -479,16 +552,49 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := time.Now()
-
-	camp.Status = campaign.StatusActive
-	camp.LaunchDate = &now
-
-	if camp.DevMode && camp.SendEmails {
-		JSONResponse(w, http.StatusBadRequest, map[string]string{
-			"error": "email sending is not allowed while dev_mode is enabled",
+	if err := h.activateCampaign(camp, time.Now(), false); err != nil {
+		statusCode := http.StatusInternalServerError
+		if isCampaignActivationValidationError(err) {
+			statusCode = http.StatusBadRequest
+		}
+		JSONResponse(w, statusCode, map[string]string{
+			"error": err.Error(),
 		})
 		return
+	}
+
+	updatedCampaign, err := h.repo.GetByID(id, userID)
+	if err != nil {
+		JSONResponse(w, http.StatusOK, camp)
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, updatedCampaign)
+}
+
+func (h *CampaignHandler) activateScheduledCampaign(campaignID int64, userID int64) error {
+	camp, err := h.repo.GetByID(campaignID, userID)
+	if err != nil {
+		return err
+	}
+	if camp.Status != campaign.StatusScheduled {
+		return nil
+	}
+	now := time.Now()
+	if camp.LaunchDate != nil && camp.LaunchDate.After(now) {
+		return nil
+	}
+	return h.activateCampaign(camp, now, true)
+}
+
+func (h *CampaignHandler) activateCampaign(camp *campaign.Campaign, now time.Time, preserveLaunchDate bool) error {
+	camp.Status = campaign.StatusActive
+	if !preserveLaunchDate || camp.LaunchDate == nil {
+		camp.LaunchDate = &now
+	}
+
+	if camp.DevMode && camp.SendEmails {
+		return fmt.Errorf("email sending is not allowed while dev_mode is enabled")
 	}
 
 	if camp.SendEmails {
@@ -500,26 +606,15 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 		camp.EmailDispatchLastAttemptAt = nil
 
 		if camp.SMTPProfileId == nil || camp.EmailTemplateId == nil {
-			JSONResponse(w, http.StatusBadRequest, map[string]string{
-				"error": "smtp_profile_id and email_template_id are required when send_emails is enabled",
-			})
-			return
+			return fmt.Errorf("smtp_profile_id and email_template_id are required when send_emails is enabled")
 		}
 
-		_, err := h.smtpRepo.GetByID(*camp.SMTPProfileId)
-		if err != nil {
-			JSONResponse(w, http.StatusBadRequest, map[string]string{
-				"error": "smtp profile not found",
-			})
-			return
+		if _, err := h.smtpRepo.GetByID(*camp.SMTPProfileId); err != nil {
+			return fmt.Errorf("smtp profile not found")
 		}
 
-		_, err = h.emailTemplateRepo.GetByID(*camp.EmailTemplateId)
-		if err != nil {
-			JSONResponse(w, http.StatusBadRequest, map[string]string{
-				"error": "email template not found",
-			})
-			return
+		if _, err := h.emailTemplateRepo.GetByID(*camp.EmailTemplateId); err != nil {
+			return fmt.Errorf("email template not found")
 		}
 	} else {
 		camp.EmailDispatchStatus = campaign.EmailDispatchIdle
@@ -534,20 +629,20 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 		camp.EmailDispatchPending = 0
 	}
 
-	if err := h.repo.Update(camp); err != nil {
-		JSONResponse(w, http.StatusInternalServerError, map[string]string{
-			"error": err.Error(),
-		})
-		return
-	}
+	return h.repo.Update(camp)
+}
 
-	updatedCampaign, err := h.repo.GetByID(id, userID)
-	if err != nil {
-		JSONResponse(w, http.StatusOK, camp)
-		return
+func isCampaignActivationValidationError(err error) bool {
+	msg := strings.ToLower(strings.TrimSpace(err.Error()))
+	switch msg {
+	case "email sending is not allowed while dev_mode is enabled",
+		"smtp_profile_id and email_template_id are required when send_emails is enabled",
+		"smtp profile not found",
+		"email template not found":
+		return true
+	default:
+		return false
 	}
-
-	JSONResponse(w, http.StatusOK, updatedCampaign)
 }
 
 func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userID int64) {
@@ -842,6 +937,31 @@ func generateCampaignToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
+func parseScheduledStartAt(startAt string, timezone string) (time.Time, error) {
+	layout := "2006-01-02T15:04"
+	startAt = strings.TrimSpace(startAt)
+	if startAt == "" {
+		return time.Time{}, fmt.Errorf("scheduled_start_at is required")
+	}
+
+	tz := strings.TrimSpace(timezone)
+	if tz == "" {
+		tz = "UTC"
+	}
+
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid scheduled timezone")
+	}
+
+	parsed, err := time.ParseInLocation(layout, startAt, loc)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid scheduled_start_at format; expected YYYY-MM-DDTHH:mm")
+	}
+
+	return parsed.UTC(), nil
+}
+
 func renderEmailTemplateField(content string, t target.Target, url string) string {
 	replacer := strings.NewReplacer(
 		"{{FirstName}}", t.FirstName,
@@ -992,7 +1112,7 @@ func (h *CampaignHandler) Stop(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, camp)
 }
 
-func (h *CampaignHandler) Archive(w http.ResponseWriter, r *http.Request) {
+func (h *CampaignHandler) Complete(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value("userID").(int64)
 
@@ -1015,14 +1135,16 @@ func (h *CampaignHandler) Archive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if camp.IsArchived {
+	if camp.Status == campaign.StatusCompleted {
 		JSONResponse(w, http.StatusConflict, map[string]string{
-			"error": "campaign already archived",
+			"error": "campaign already completed",
 		})
 		return
 	}
 
-	camp.IsArchived = true
+	now := time.Now()
+	camp.Status = campaign.StatusCompleted
+	camp.CompletedDate = &now
 
 	if err := h.repo.Update(camp); err != nil {
 		JSONResponse(w, http.StatusInternalServerError, map[string]string{
@@ -1032,6 +1154,11 @@ func (h *CampaignHandler) Archive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	JSONResponse(w, http.StatusOK, camp)
+}
+
+// Archive is kept as backward-compatible alias for Complete.
+func (h *CampaignHandler) Archive(w http.ResponseWriter, r *http.Request) {
+	h.Complete(w, r)
 }
 
 func (h *CampaignHandler) Analytics(w http.ResponseWriter, r *http.Request) {

@@ -88,6 +88,8 @@ export interface CreateCampaignRequest {
     smtp_profile_id?: number;
     email_template_id?: number;
     send_emails?: boolean;
+    scheduled_start_at?: string;
+    scheduled_timezone?: string;
 }
 
 export interface UpdateCampaignRequest {
@@ -98,4 +100,7 @@ export interface UpdateCampaignRequest {
     smtp_profile_id?: number;
     email_template_id?: number;
     send_emails?: boolean;
+    status?: CampaignStatus;
+    scheduled_start_at?: string;
+    scheduled_timezone?: string;
 }

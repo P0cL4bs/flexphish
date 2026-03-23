@@ -517,10 +517,10 @@ export class ApiService {
     }
 
 
-    public archiveCampaign(id: number): Observable<CampaignDetail> {
+    public completeCampaign(id: number): Observable<CampaignDetail> {
 
         return this.http.post<CampaignDetail>(
-            `${this.settings.URL()}/campaigns/${id}/archive`,
+            `${this.settings.URL()}/campaigns/${id}/complete`,
             {},
             { headers: this.creds.headers }
         ).pipe(

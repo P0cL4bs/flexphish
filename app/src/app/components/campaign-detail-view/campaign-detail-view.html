@@ -17,6 +17,7 @@
                     <span class="badge badge-lg badge-soft" [ngClass]="{
             'badge-success': campaign.status === 'active',
             'badge-ghost': campaign.status === 'draft',
+            'badge-accent': campaign.status === 'scheduled',
             'badge-warning': campaign.status === 'stopped',
             'badge-info': campaign.status === 'completed'
         }">
@@ -65,11 +66,11 @@
                         </a>
                     </li>
 
-                    <!-- ARCHIVE -->
-                    <li>
-                        <a (click)="archiveCampaign()" class="text-info">
-                            <fa-icon [icon]="faArchive"></fa-icon>
-                            Archive
+                    <!-- COMPLETE -->
+                    <li *ngIf="campaign?.status !== 'completed'">
+                        <a (click)="completeCampaign()" class="text-info">
+                            <fa-icon [icon]="faComplete"></fa-icon>
+                            Complete
                         </a>
                     </li>
 
@@ -78,6 +79,14 @@
                         <a class="" (click)="openEditCampaignModal()">
                             <fa-icon [icon]="faEdit"></fa-icon>
                             Edit
+                        </a>
+                    </li>
+
+                    <!-- RESCHEDULE -->
+                    <li *ngIf="campaign?.status !== 'active' && campaign?.status !== 'completed' && campaign?.status !== 'cancelled'">
+                        <a (click)="openRescheduleCampaignModal()" class="text-accent">
+                            <lucide-icon name="calendar-clock" size="16"></lucide-icon>
+                            Reschedule
                         </a>
                     </li>
 
@@ -907,6 +916,54 @@
 
                     </select>
                 </div>
+                <!-- Dev Mode -->
+                <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
+                    <legend class="fieldset-legend">Start Time</legend>
+
+                    <label class="label cursor-pointer gap-3 justify-start">
+                        <input type="checkbox" name="schedule_enabled" class="checkbox checkbox-primary"
+                            [(ngModel)]="editCampaignData.schedule_enabled" [disabled]="campaign.status === 'active'" />
+
+                        <span class="label-text">
+                            Schedule campaign start
+                        </span>
+                    </label>
+
+                    <p class="text-xs opacity-70 mt-1" *ngIf="campaign.status === 'active'">
+                        Active campaigns cannot be rescheduled. Stop the campaign first.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2" *ngIf="editCampaignData.schedule_enabled">
+                        <div>
+                            <label class="label">
+                                <span class="label-text">Date</span>
+                            </label>
+                            <input type="date" class="input input-bordered w-full" [(ngModel)]="editCampaignData.schedule_date"
+                                name="schedule_date" />
+                        </div>
+                        <div>
+                            <label class="label">
+                                <span class="label-text">Time</span>
+                            </label>
+                            <input type="time" class="input input-bordered w-full" [(ngModel)]="editCampaignData.schedule_time"
+                                name="schedule_time" />
+                        </div>
+                        <div>
+                            <label class="label">
+                                <span class="label-text">Timezone</span>
+                            </label>
+                            <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.schedule_timezone"
+                                name="schedule_timezone">
+                                <option *ngFor="let tz of availableTimezones" [ngValue]="tz">{{ tz }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3 text-sm" *ngIf="editCampaignData.schedule_enabled">
+                        Rescheduling this campaign resets delivery status to Pending and clears the current send history.
+                    </div>
+                </fieldset>
+
                 <!-- Dev Mode -->
                 <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
                     <legend class="fieldset-legend">Development Mode</legend>

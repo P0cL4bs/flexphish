@@ -34,6 +34,10 @@ export class CampaignView implements OnInit {
     group_ids: [] as number[],
     smtp_profile_id: null as number | null,
     email_template_id: null as number | null,
+    schedule_enabled: false,
+    schedule_date: '',
+    schedule_time: '',
+    schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   };
   templates: TemplateMetadata[] = [];
   loadingTemplates = false;
@@ -48,6 +52,7 @@ export class CampaignView implements OnInit {
   errorMessage = '';
 
   loading = false;
+  availableTimezones: string[] = [];
 
   page = 1;
   pageSize = 10;
@@ -67,6 +72,7 @@ export class CampaignView implements OnInit {
   constructor(private api: ApiService, private router: Router, private toastr: ToastService) { }
 
   ngOnInit(): void {
+    this.availableTimezones = this.getAvailableTimezones();
     this.loadCampaigns();
     this.loadTemplates();
     this.loadGroups();
@@ -191,7 +197,21 @@ export class CampaignView implements OnInit {
       smtp_profile_id: this.newCampaign.smtp_profile_id ?? 0,
       email_template_id: this.newCampaign.email_template_id ?? 0,
       send_emails: this.newCampaign.smtp_profile_id != null && this.newCampaign.email_template_id != null,
+      scheduled_start_at: this.newCampaign.schedule_enabled
+        ? `${this.newCampaign.schedule_date}T${this.newCampaign.schedule_time}`
+        : undefined,
+      scheduled_timezone: this.newCampaign.schedule_enabled
+        ? this.newCampaign.schedule_timezone
+        : undefined,
     };
+
+    if (this.newCampaign.schedule_enabled) {
+      if (!this.newCampaign.schedule_date || !this.newCampaign.schedule_time) {
+        this.creating = false;
+        this.errorMessage = 'Scheduled start requires date and time';
+        return;
+      }
+    }
 
     this.api.createCampaign(payload)
       .subscribe({
@@ -210,6 +230,10 @@ export class CampaignView implements OnInit {
             group_ids: [],
             smtp_profile_id: null,
             email_template_id: null,
+            schedule_enabled: false,
+            schedule_date: '',
+            schedule_time: '',
+            schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
           };
 
           this.router.navigate(['/campaigns', campaign.id]);
@@ -219,6 +243,29 @@ export class CampaignView implements OnInit {
           this.errorMessage = err?.error?.error || "Failed to create a campaign";;
         }
       });
+  }
+
+  private getAvailableTimezones(): string[] {
+    const fallback = [
+      'UTC',
+      'America/Sao_Paulo',
+      'America/Bahia',
+      'America/New_York',
+      'Europe/London',
+    ];
+
+    try {
+      const fn = (Intl as any).supportedValuesOf;
+      if (typeof fn === 'function') {
+        const list = fn.call(Intl, 'timeZone') as string[];
+        if (Array.isArray(list) && list.length > 0) {
+          return list;
+        }
+      }
+    } catch {
+    }
+
+    return fallback;
   }
 
   isCreateGroupSelected(groupId: number): boolean {

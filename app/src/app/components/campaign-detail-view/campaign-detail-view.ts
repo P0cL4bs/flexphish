@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { CampaignDetail } from 'src/app/models/campaign-detail.model';
+import { CampaignStatus } from 'src/app/models/campaign.model';
 import { ApiService } from 'src/app/services/api.service';
 import { faAndroid, faApple, faWindows, faLinux, faChrome, faFirefox, faSafari, faEdge } from '@fortawesome/free-brands-svg-icons';
 import { faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
@@ -11,7 +12,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faPlay,
   faStop,
-  faArchive,
+  faCircleCheck,
   faPen,
   faTrash,
   faChartLine
@@ -54,11 +55,15 @@ export class CampaignDetailView {
     group_ids: [] as number[],
     smtp_profile_id: null as number | null,
     email_template_id: null as number | null,
+    schedule_enabled: false,
+    schedule_date: '',
+    schedule_time: '',
+    schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   };
 
   faPlay = faPlay;
   faStop = faStop;
-  faArchive = faArchive;
+  faComplete = faCircleCheck;
   faEdit = faPen;
   faDelete = faTrash;
   faStats = faChartLine;
@@ -82,6 +87,7 @@ export class CampaignDetailView {
   expandedResultId: number | null = null;
   emailDeliveryPollingId: ReturnType<typeof setInterval> | null = null;
   devModeErrorMessage = 'Email sending is not allowed while development mode is enabled.';
+  availableTimezones: string[] = [];
 
   setActiveTab(tab: CampaignDetailTab) {
     this.activeTab = tab;
@@ -112,6 +118,7 @@ export class CampaignDetailView {
 
   ngOnInit(): void {
     this.campaignId = Number(this.route.snapshot.paramMap.get('id'));
+    this.availableTimezones = this.getAvailableTimezones();
     this.loadCampaign();
     this.apiService.getConfigs().subscribe({
       next: (data) => {
@@ -530,6 +537,7 @@ export class CampaignDetailView {
   }
 
   openEditCampaignModal() {
+    const launchDateParts = this.parseLaunchDateToLocalParts(this.campaign.launch_date);
 
     this.editCampaignData = {
       name: this.campaign.name,
@@ -538,6 +546,10 @@ export class CampaignDetailView {
       group_ids: (this.campaign.groups || []).map(group => group.id),
       smtp_profile_id: this.campaign.smtp_profile_id ?? null,
       email_template_id: this.campaign.email_template_id ?? null,
+      schedule_enabled: this.campaign.status === 'scheduled',
+      schedule_date: this.campaign.status === 'scheduled' ? launchDateParts.date : '',
+      schedule_time: this.campaign.status === 'scheduled' ? launchDateParts.time : '',
+      schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     };
 
     this.loadTemplates();
@@ -549,13 +561,53 @@ export class CampaignDetailView {
     modal?.showModal();
   }
 
+  openRescheduleCampaignModal() {
+    this.openEditCampaignModal();
+
+    this.editCampaignData.schedule_enabled = true;
+    if (!this.editCampaignData.schedule_date || !this.editCampaignData.schedule_time) {
+      const suggested = new Date(Date.now() + 10 * 60 * 1000);
+      const yyyy = suggested.getFullYear();
+      const mm = String(suggested.getMonth() + 1).padStart(2, '0');
+      const dd = String(suggested.getDate()).padStart(2, '0');
+      const hh = String(suggested.getHours()).padStart(2, '0');
+      const mi = String(suggested.getMinutes()).padStart(2, '0');
+      this.editCampaignData.schedule_date = `${yyyy}-${mm}-${dd}`;
+      this.editCampaignData.schedule_time = `${hh}:${mi}`;
+    }
+  }
+
   saveCampaignEdit() {
+    if (this.campaign.status === 'active' && this.editCampaignData.schedule_enabled) {
+      this.toastr.show('Stop the campaign before scheduling a new start time', 'warning');
+      return;
+    }
+
+    const scheduledStatus: CampaignStatus | undefined = this.editCampaignData.schedule_enabled
+      ? 'scheduled'
+      : (this.campaign.status === 'scheduled' ? 'draft' : undefined);
+
     const payload = {
-      ...this.editCampaignData,
+      name: this.editCampaignData.name,
+      template_id: this.editCampaignData.template_id,
+      dev_mode: this.editCampaignData.dev_mode,
+      group_ids: this.editCampaignData.group_ids,
       smtp_profile_id: this.editCampaignData.smtp_profile_id ?? 0,
       email_template_id: this.editCampaignData.email_template_id ?? 0,
       send_emails: this.editCampaignData.smtp_profile_id != null && this.editCampaignData.email_template_id != null,
+      status: scheduledStatus,
+      scheduled_start_at: this.editCampaignData.schedule_enabled
+        ? `${this.editCampaignData.schedule_date}T${this.editCampaignData.schedule_time}`
+        : (this.campaign.status === 'scheduled' ? '' : undefined),
+      scheduled_timezone: this.editCampaignData.schedule_enabled
+        ? this.editCampaignData.schedule_timezone
+        : undefined,
     };
+
+    if (this.editCampaignData.schedule_enabled && (!this.editCampaignData.schedule_date || !this.editCampaignData.schedule_time)) {
+      this.toastr.show('Scheduled start requires date and time', 'warning');
+      return;
+    }
 
     this.apiService.updateCampaign(this.campaign.id, payload)
       .subscribe({
@@ -569,11 +621,56 @@ export class CampaignDetailView {
           this.loadCampaign();
         },
         error: (err) => {
-          const message = err?.error?.error || "Falied to update campagin";
+          const message = err?.error?.error || "Failed to update campaign";
           this.toastr.show(message, "error");
         }
       });
 
+  }
+
+  private parseLaunchDateToLocalParts(launchDate?: string): { date: string, time: string } {
+    if (!launchDate) {
+      return { date: '', time: '' };
+    }
+
+    const date = new Date(launchDate);
+    if (Number.isNaN(date.getTime())) {
+      return { date: '', time: '' };
+    }
+
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+
+    return {
+      date: `${yyyy}-${mm}-${dd}`,
+      time: `${hh}:${mi}`,
+    };
+  }
+
+  private getAvailableTimezones(): string[] {
+    const fallback = [
+      'UTC',
+      'America/Sao_Paulo',
+      'America/Bahia',
+      'America/New_York',
+      'Europe/London',
+    ];
+
+    try {
+      const fn = (Intl as any).supportedValuesOf;
+      if (typeof fn === 'function') {
+        const list = fn.call(Intl, 'timeZone') as string[];
+        if (Array.isArray(list) && list.length > 0) {
+          return list;
+        }
+      }
+    } catch {
+    }
+
+    return fallback;
   }
 
   isEditGroupSelected(groupId: number): boolean {
@@ -641,10 +738,10 @@ export class CampaignDetailView {
     });
   }
 
-  archiveCampaign() {
+  completeCampaign() {
     if (!this.campaign) return;
 
-    this.apiService.archiveCampaign(this.campaign.id).subscribe({
+    this.apiService.completeCampaign(this.campaign.id).subscribe({
       next: (c) => this.campaign = c,
       error: (err) => alert(err.message)
     });

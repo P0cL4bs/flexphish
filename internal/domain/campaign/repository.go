@@ -5,6 +5,7 @@ import "time"
 type Repository interface {
 	Create(c *Campaign) error
 	GetByID(id int64, userId int64) (*Campaign, error)
+	ListScheduledStartCandidates(now time.Time) ([]Campaign, error)
 	ListEmailDispatchCandidates() ([]Campaign, error)
 	ListByUser(userId int64, status *CampaignStatus, page, pageSize int) ([]Campaign, int64, error)
 	Update(c *Campaign) error
@@ -23,6 +24,7 @@ type Repository interface {
 	UpdateStatus(id int64, status CampaignStatus) error
 	CountCampaignsUsingTemplateId(templateId string) (int64, error)
 	HasActiveCampaignUsingTemplate(templateId string) (bool, error)
+	ResetEmailDelivery(campaignID int64, userID int64) error
 	GetTopCampaigns(userID int64) ([]TopCampaignMetric, error)
 	GetTimeline(userID int64, period string) ([]TimelineMetric, error)
 	GetAnalytics(userID int64, period string) (*CampaignAnalytics, error)

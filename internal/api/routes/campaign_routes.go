@@ -44,6 +44,7 @@ func RegisterCampaignRoutes(
 
 	idRouter.HandleFunc("/start", handler.Start).Methods(http.MethodPost, http.MethodOptions)
 	idRouter.HandleFunc("/stop", handler.Stop).Methods(http.MethodPost, http.MethodOptions)
+	idRouter.HandleFunc("/complete", handler.Complete).Methods(http.MethodPost, http.MethodOptions)
 	idRouter.HandleFunc("/archive", handler.Archive).Methods(http.MethodPost, http.MethodOptions)
 
 	idRouter.HandleFunc("/results/{result_id}", handler.DeleteResult).Methods(http.MethodDelete, http.MethodOptions)

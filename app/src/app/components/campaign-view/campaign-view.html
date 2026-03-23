@@ -17,6 +17,7 @@
 
             <option value="">All Status</option>
             <option value="draft">Draft</option>
+            <option value="scheduled">Scheduled</option>
             <option value="active">Active</option>
             <option value="stopped">Stopped</option>
             <option value="completed">Completed</option>
@@ -101,12 +102,14 @@
                                 <span class="badge badge-soft font-bold" [ngClass]="{
                                     'badge-success': c.status === 'active',
                                     'badge-ghost': c.status === 'draft',
+                                    'badge-accent': c.status === 'scheduled',
                                     'badge-warning': c.status === 'stopped',
                                     'badge-info': c.status === 'completed'
                                 }">
                                     <div aria-label="status" class="status" [ngClass]="{
                                     'status-success': c.status === 'active',
                                     'status-ghost': c.status === 'draft',
+                                    'status-accent': c.status === 'scheduled',
                                     'status-warning': c.status === 'stopped',
                                     'status-info': c.status === 'completed'
                                 }"></div>
@@ -195,7 +198,7 @@
                                         <div>
                                             <h2 class="text-xl font-bold flex gap-3 items-center"> {{ detail.name }}
                                                 <span class="badge badge-soft"
-                                                    [ngClass]="{ 'badge-success': detail.status === 'active', 'badge-ghost': detail.status === 'draft', 'badge-warning': detail.status === 'stopped', 'badge-info': detail.status === 'completed' }">
+                                                    [ngClass]="{ 'badge-success': detail.status === 'active', 'badge-ghost': detail.status === 'draft', 'badge-accent': detail.status === 'scheduled', 'badge-warning': detail.status === 'stopped', 'badge-info': detail.status === 'completed' }">
                                                     {{ detail.status }} </span>
                                             </h2>
                                             <p class="opacity-70 text-sm mt-1"> Template: {{ detail.template_id }} </p>
@@ -350,6 +353,38 @@
                 </label>
                 <input type="text" [(ngModel)]="newCampaign.subdomain" class="input input-bordered w-full" />
             </div>
+
+            <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
+                <legend class="fieldset-legend">Start Time</legend>
+
+                <label class="label cursor-pointer gap-3 justify-start">
+                    <input type="checkbox" class="checkbox checkbox-primary" [(ngModel)]="newCampaign.schedule_enabled" />
+                    <span class="label-text">Schedule campaign start</span>
+                </label>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2" *ngIf="newCampaign.schedule_enabled">
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Date</span>
+                        </label>
+                        <input type="date" class="input input-bordered w-full" [(ngModel)]="newCampaign.schedule_date" />
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Time</span>
+                        </label>
+                        <input type="time" class="input input-bordered w-full" [(ngModel)]="newCampaign.schedule_time" />
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Timezone</span>
+                        </label>
+                        <select class="select select-bordered w-full" [(ngModel)]="newCampaign.schedule_timezone">
+                            <option *ngFor="let tz of availableTimezones" [ngValue]="tz">{{ tz }}</option>
+                        </select>
+                    </div>
+                </div>
+            </fieldset>
 
             <!-- Groups -->
             <div>
