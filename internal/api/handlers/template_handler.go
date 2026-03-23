@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -34,6 +35,16 @@ type cloneTemplateRequest struct {
 	Description *string `json:"description"`
 }
 
+var validHTTPMethods = map[string]struct{}{
+	http.MethodGet:     {},
+	http.MethodPost:    {},
+	http.MethodPut:     {},
+	http.MethodPatch:   {},
+	http.MethodDelete:  {},
+	http.MethodHead:    {},
+	http.MethodOptions: {},
+}
+
 func buildTemplateDir(filename string) (string, error) {
 
 	name := strings.TrimSuffix(filename, ".yaml")
@@ -47,6 +58,87 @@ func buildTemplateDir(filename string) (string, error) {
 	slug = strings.ReplaceAll(slug, "-", "_")
 
 	return slug, nil
+}
+
+func validateTemplatePayload(tpl *template.Template) error {
+	if strings.TrimSpace(tpl.Info.Name) == "" {
+		return errors.New("info.name is required")
+	}
+
+	if strings.TrimSpace(tpl.Info.Author) == "" {
+		return errors.New("info.author is required")
+	}
+
+	if len(tpl.Steps) == 0 {
+		return errors.New("at least one step is required")
+	}
+
+	stepIDs := make(map[string]struct{}, len(tpl.Steps))
+
+	for i, step := range tpl.Steps {
+		pos := i + 1
+
+		if strings.TrimSpace(step.ID) == "" {
+			return fmt.Errorf("steps[%d].id is required", pos)
+		}
+
+		if _, exists := stepIDs[step.ID]; exists {
+			return fmt.Errorf("steps[%d].id is duplicated", pos)
+		}
+		stepIDs[step.ID] = struct{}{}
+
+		if strings.TrimSpace(step.Title) == "" {
+			return fmt.Errorf("steps[%d].title is required", pos)
+		}
+
+		if strings.TrimSpace(step.Path) == "" {
+			return fmt.Errorf("steps[%d].path is required", pos)
+		}
+
+		if !strings.HasPrefix(step.Path, "/") {
+			return fmt.Errorf("steps[%d].path must start with /", pos)
+		}
+
+		if strings.TrimSpace(step.Method) == "" {
+			return fmt.Errorf("steps[%d].method is required", pos)
+		}
+
+		method := strings.ToUpper(strings.TrimSpace(step.Method))
+		if _, ok := validHTTPMethods[method]; !ok {
+			return fmt.Errorf("steps[%d].method is invalid", pos)
+		}
+
+		if strings.TrimSpace(step.TemplateFile) == "" {
+			return fmt.Errorf("steps[%d].template_file is required", pos)
+		}
+
+		if !strings.HasSuffix(strings.ToLower(step.TemplateFile), ".html") {
+			return fmt.Errorf("steps[%d].template_file must be .html", pos)
+		}
+
+		if strings.Contains(step.TemplateFile, "..") {
+			return fmt.Errorf("steps[%d].template_file is invalid", pos)
+		}
+
+		for j, field := range step.Capture.Fields {
+			fieldPos := j + 1
+			if strings.TrimSpace(field.Name) == "" {
+				return fmt.Errorf("steps[%d].capture.fields[%d].name is required", pos, fieldPos)
+			}
+		}
+	}
+
+	for i, step := range tpl.Steps {
+		if strings.TrimSpace(step.Next) == "" {
+			continue
+		}
+
+		if _, ok := stepIDs[step.Next]; !ok {
+			return fmt.Errorf("steps[%d].next references unknown step id", i+1)
+		}
+	}
+
+	return nil
 }
 
 func NewTemplateHandler(repo template.TemplateRepository, camrepo campaign.Repository) *TemplateHandler {
@@ -172,6 +264,14 @@ func (h *TemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	if err := validateTemplatePayload(&tpl); err != nil {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	tpl.Info.System = false
 	tpl.TemplateDir, _ = buildTemplateDir(req.Filename)
 
@@ -409,6 +509,14 @@ func (h *TemplateHandler) Update(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	if err := validateTemplatePayload(&tpl); err != nil {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	tpl.Info.System = false
 
 	expectedDir, err := buildTemplateDir(req.Filename)
