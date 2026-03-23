@@ -10,7 +10,7 @@ import { interval } from "rxjs/internal/observable/interval";
 import { startWith, switchMap } from "rxjs/operators";
 import { TokenResponse } from '../models/token';
 import { jwtDecode } from 'jwt-decode';
-import { Template, TemplateCreateRequest, TemplateDeleteRequest, TemplateHtmlFile, TemplateHtmlFileDeleteRequest, TemplateHtmlFileUpdateRequest, TemplateHtmlFileUploadRequest, TemplateMetadata, TemplateStaticFile, TemplateStaticFileRequest, TemplateUpdateRequest } from '../models/template.model';
+import { Template, TemplateCloneRequest, TemplateCreateRequest, TemplateDeleteRequest, TemplateHtmlFile, TemplateHtmlFileDeleteRequest, TemplateHtmlFileUpdateRequest, TemplateHtmlFileUploadRequest, TemplateMetadata, TemplateStaticFile, TemplateStaticFileRequest, TemplateUpdateRequest } from '../models/template.model';
 import { TemplatesResponse } from '../models/template-response.model';
 import { CampaignDetail } from '../models/campaign-detail.model';
 import { Campaign, CreateCampaignRequest, UpdateCampaignRequest } from '../models/campaign.model';
@@ -253,6 +253,23 @@ export class ApiService {
 
         return this.http.post(
             `${this.settings.URL()}/templates`,
+            data,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+
+    }
+
+    public cloneTemplate(
+        sourceFilename: string,
+        data: TemplateCloneRequest
+    ): Observable<Template> {
+
+        return this.http.post<Template>(
+            `${this.settings.URL()}/templates/${sourceFilename}/clone`,
             data,
             { headers: this.creds.headers }
         ).pipe(

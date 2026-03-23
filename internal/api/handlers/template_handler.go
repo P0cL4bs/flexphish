@@ -28,6 +28,12 @@ type deleteTemplateRequest struct {
 	Filename string `json:"filename"`
 }
 
+type cloneTemplateRequest struct {
+	NewFilename string  `json:"new_filename"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+}
+
 func buildTemplateDir(filename string) (string, error) {
 
 	name := strings.TrimSuffix(filename, ".yaml")
@@ -188,6 +194,142 @@ func (h *TemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.repo.Delete(req.Filename)
 		JSONResponse(w, http.StatusInternalServerError, map[string]string{
 			"error": err.Error(),
+		})
+		return
+	}
+
+	JSONResponse(w, http.StatusCreated, tpl)
+}
+
+func (h *TemplateHandler) Clone(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sourceFilename := vars["filename"]
+
+	var req cloneTemplateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": "invalid json body",
+		})
+		return
+	}
+
+	if sourceFilename == "" {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": "source filename required",
+		})
+		return
+	}
+
+	if req.NewFilename == "" || req.Name == "" {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": "new_filename and name required",
+		})
+		return
+	}
+
+	if !strings.HasSuffix(req.NewFilename, ".yaml") {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": "new_filename must have .yaml extension",
+		})
+		return
+	}
+
+	newTemplateDir, err := buildTemplateDir(req.NewFilename)
+	if err != nil {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	sourceExists, err := h.repo.Exists(sourceFilename)
+	if err != nil {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if !sourceExists {
+		JSONResponse(w, http.StatusNotFound, map[string]string{
+			"error": "source template not found",
+		})
+		return
+	}
+
+	newExists, err := h.repo.Exists(req.NewFilename)
+	if err != nil {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if newExists {
+		JSONResponse(w, http.StatusConflict, map[string]string{
+			"error": "template already exists",
+		})
+		return
+	}
+
+	dirExists, err := h.repo.TemplateDirExists(newTemplateDir)
+	if err != nil {
+		JSONResponse(w, http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if dirExists {
+		JSONResponse(w, http.StatusConflict, map[string]string{
+			"error": "assets directory already exists",
+		})
+		return
+	}
+
+	sourceMetadata, err := h.repo.LoadByFilename(sourceFilename)
+	if err != nil {
+		JSONResponse(w, http.StatusNotFound, map[string]string{
+			"error": "source template not found",
+		})
+		return
+	}
+
+	var tpl template.Template
+	if err := yaml.Unmarshal([]byte(sourceMetadata.Content), &tpl); err != nil {
+		JSONResponse(w, http.StatusBadRequest, map[string]string{
+			"error": "invalid source template yaml",
+		})
+		return
+	}
+
+	tpl.Info.System = false
+	tpl.Info.Name = req.Name
+	if req.Description != nil {
+		tpl.Info.Description = *req.Description
+	}
+	tpl.TemplateDir = newTemplateDir
+
+	updatedYAML, err := yaml.Marshal(&tpl)
+	if err != nil {
+		JSONResponse(w, http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if err := h.repo.Save(req.NewFilename, string(updatedYAML)); err != nil {
+		JSONResponse(w, http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if err := h.repo.CopyTemplateDir(sourceMetadata.TemplateDir, tpl.TemplateDir); err != nil {
+		_ = h.repo.Delete(req.NewFilename)
+		_ = h.repo.DeleteTemplateDir(tpl.TemplateDir)
+		JSONResponse(w, http.StatusInternalServerError, map[string]string{
+			"error": "failed to clone template assets",
 		})
 		return
 	}

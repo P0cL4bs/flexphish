@@ -84,6 +84,12 @@ export interface TemplateDeleteRequest {
     filename: string;
 }
 
+export interface TemplateCloneRequest {
+    new_filename: string;
+    name: string;
+    description?: string;
+}
+
 
 export interface TemplateHtmlFile {
     filename: string;

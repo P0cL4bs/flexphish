@@ -15,6 +15,7 @@ func RegisterTemplateRoutes(router *mux.Router, handler *handlers.TemplateHandle
 	api.HandleFunc("", handler.Create).Methods(http.MethodPost, http.MethodOptions)
 	api.HandleFunc("", handler.Update).Methods(http.MethodPut, http.MethodOptions)
 	api.HandleFunc("", handler.Delete).Methods(http.MethodDelete, http.MethodOptions)
+	api.HandleFunc("/{filename}/clone", handler.Clone).Methods(http.MethodPost, http.MethodOptions)
 
 	api.HandleFunc("/{filename}", handler.GetByFilename).Methods(http.MethodGet, http.MethodOptions)
 	api.HandleFunc("/{filename}/metadata", handler.GetMetadataByFilename).Methods(http.MethodGet, http.MethodOptions)

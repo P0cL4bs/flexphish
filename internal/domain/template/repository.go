@@ -7,6 +7,7 @@ type TemplateRepository interface {
 	Exists(filename string) (bool, error)
 	Save(filename, content string) error
 	CreateTemplateDir(templateDir string) error
+	CopyTemplateDir(srcTemplateDir, dstTemplateDir string) error
 	TemplateDirExists(templateDir string) (bool, error)
 	Delete(filename string) error
 	DeleteTemplateDir(templateDir string) error
