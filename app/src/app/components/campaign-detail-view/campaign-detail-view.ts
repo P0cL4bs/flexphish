@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CampaignDetail } from 'src/app/models/campaign-detail.model';
 import { CampaignStatus } from 'src/app/models/campaign.model';
 import { ApiService } from 'src/app/services/api.service';
@@ -91,17 +91,28 @@ export class CampaignDetailView {
 
   setActiveTab(tab: CampaignDetailTab) {
     this.activeTab = tab;
+    if (!this.campaignId) {
+      return;
+    }
+
+    this.router.navigate(this.getRouteForTab(tab));
   }
 
   goToResultsTab(target?: CampaignTarget) {
-    this.activeTab = 'results';
+    if (!this.campaignId) return;
 
-    if (!target) return;
+    const queryParams: Record<string, string> = {};
+    if (target?.result?.session_id) {
+      queryParams['session'] = target.result.session_id;
+    }
+    if (target?.result?.id) {
+      queryParams['expand'] = String(target.result.id);
+    }
 
-    const sessionId = target.result?.session_id || '';
-    this.eventSearchTerm = sessionId;
-
-    this.expandedResultId = target.result?.id || null;
+    this.router.navigate(
+      this.getRouteForTab('results'),
+      { queryParams }
+    );
   }
 
   toggleResult(id: number) {
@@ -112,12 +123,15 @@ export class CampaignDetailView {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private apiService: ApiService,
     private toastr: ToastService
   ) { }
 
   ngOnInit(): void {
     this.campaignId = Number(this.route.snapshot.paramMap.get('id'));
+    this.syncActiveTabFromRoute();
+    this.applyResultsStateFromQuery();
     this.availableTimezones = this.getAvailableTimezones();
     this.loadCampaign();
     this.apiService.getConfigs().subscribe({
@@ -157,6 +171,45 @@ export class CampaignDetailView {
 
   ngOnDestroy(): void {
     this.stopEmailDeliveryPolling();
+  }
+
+  private syncActiveTabFromRoute() {
+    const routePath = this.route.snapshot.routeConfig?.path || '';
+
+    if (routePath.includes('results')) {
+      this.activeTab = 'results';
+      return;
+    }
+
+    if (routePath.includes('target-delivery') || routePath.includes('target-develiry')) {
+      this.activeTab = 'delivery';
+      return;
+    }
+
+    this.activeTab = 'overview';
+  }
+
+  private getRouteForTab(tab: CampaignDetailTab): (string | number)[] {
+    if (tab === 'delivery') {
+      return ['/campaigns', this.campaignId, 'target-delivery'];
+    }
+    if (tab === 'results') {
+      return ['/campaigns', this.campaignId, 'results'];
+    }
+    return ['/campaigns', this.campaignId];
+  }
+
+  private applyResultsStateFromQuery() {
+    const session = (this.route.snapshot.queryParamMap.get('session') || '').trim();
+    const expandRaw = this.route.snapshot.queryParamMap.get('expand');
+    const expand = expandRaw ? Number(expandRaw) : null;
+
+    if (session) {
+      this.eventSearchTerm = session;
+    }
+    if (expand && Number.isFinite(expand)) {
+      this.expandedResultId = expand;
+    }
   }
 
   loadTemplate(templateId: string) {

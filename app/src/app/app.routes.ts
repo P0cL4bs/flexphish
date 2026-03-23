@@ -35,6 +35,19 @@ export const routes: Routes = [
     component: CampaignView, canActivate: [AuthGuard]
   },
   {
+    path: 'campaigns/:id/target-delivery',
+    component: CampaignDetailView, canActivate: [AuthGuard]
+  },
+  {
+    path: 'campaigns/:id/target-develiry',
+    redirectTo: 'campaigns/:id/target-delivery',
+    pathMatch: 'full'
+  },
+  {
+    path: 'campaigns/:id/results',
+    component: CampaignDetailView, canActivate: [AuthGuard]
+  },
+  {
     path: 'campaigns/:id',
     component: CampaignDetailView, canActivate: [AuthGuard]
   },
