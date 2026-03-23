@@ -101,9 +101,24 @@
               Manage targets for this group
             </p>
           </div>
-          <button class="btn btn-secondary" [disabled]="!selectedGroup" (click)="openCreateTargetDialog()">
-            + Add Target
-          </button>
+          <div class="flex flex-wrap gap-2">
+            <input #targetsImportInput type="file" class="hidden" accept=".csv,.xml,text/csv,application/xml,text/xml"
+              (change)="onTargetsFileSelected($event)" />
+
+            <button class="btn btn-outline" [class.loading]="importingTargets" [disabled]="!selectedGroup || importingTargets"
+              (click)="triggerTargetImport()">
+              <lucide-icon *ngIf="!importingTargets" name="file-up" size="16"></lucide-icon>
+              Import CSV/XML
+            </button>
+
+            <button class="btn btn-secondary" [disabled]="!selectedGroup || importingTargets" (click)="openCreateTargetDialog()">
+              + Add Target
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="selectedGroup" class="text-xs opacity-70">
+          Import files must include target fields: <code>first_name</code>, <code>last_name</code>, <code>email</code>, <code>position</code>.
         </div>
 
         <div *ngIf="selectedGroup"
