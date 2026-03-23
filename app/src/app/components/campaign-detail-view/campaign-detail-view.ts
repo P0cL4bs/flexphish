@@ -393,7 +393,7 @@ export class CampaignDetailView {
 
     if (targets.length === 0) return this.campaign.status === 'active';
 
-    return pending > 0 || sent+failed < targets.length;
+    return pending > 0 || sent + failed < targets.length;
   }
 
   private syncEmailDeliveryPolling(): void {
@@ -777,7 +777,7 @@ export class CampaignDetailView {
           this.openDevModeErrorModal();
           return;
         }
-        alert(err.message);
+        this.toastr.show(err.error?.error, "error")
       }
     });
   }
