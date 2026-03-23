@@ -82,11 +82,18 @@ func (s *sessionService) Resolve(w http.ResponseWriter, r *http.Request, campaig
 				if targetErr == nil && campaignTarget != nil {
 					created.CampaignTargetId = &campaignTarget.Id
 					_ = s.repo.Update(created)
-					_ = s.campaignRepo.MarkCampaignTargetOpened(campaignTarget.Id, created.Id, info.IP, info.UserAgent, time.Now())
+					openedNow, _ := s.campaignRepo.MarkCampaignTargetOpenedIfFirst(
+						campaignTarget.Id,
+						&created.Id,
+						info.IP,
+						info.UserAgent,
+						time.Now(),
+					)
+					if openedNow {
+						_ = s.campaignRepo.IncrementOpened(campaignId)
+					}
 				}
 			}
-
-			_ = s.campaignRepo.IncrementOpened(campaignId)
 			return created, nil
 		}
 
@@ -97,7 +104,16 @@ func (s *sessionService) Resolve(w http.ResponseWriter, r *http.Request, campaig
 					res.CampaignTargetId = &campaignTarget.Id
 				}
 				_ = s.repo.Update(res)
-				_ = s.campaignRepo.MarkCampaignTargetOpened(campaignTarget.Id, res.Id, info.IP, info.UserAgent, time.Now())
+				openedNow, _ := s.campaignRepo.MarkCampaignTargetOpenedIfFirst(
+					campaignTarget.Id,
+					&res.Id,
+					info.IP,
+					info.UserAgent,
+					time.Now(),
+				)
+				if openedNow {
+					_ = s.campaignRepo.IncrementOpened(campaignId)
+				}
 			}
 		}
 

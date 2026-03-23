@@ -72,22 +72,8 @@ func (s *CampaignEmailScheduler) workerLoop() {
 	for camp := range s.queue {
 		s.queued.Delete(camp.Id)
 		s.inFlight.Store(camp.Id, true)
-		startedAt := time.Now()
-
-		logger.Log.Info("email scheduler dispatch started",
-			zap.Int64("campaign_id", camp.Id),
-			zap.Int64("user_id", camp.UserId),
-			zap.Int("queue_depth", len(s.queue)),
-		)
 
 		s.handler.sendCampaignEmailsInBackground(camp.Id, camp.UserId)
-
-		logger.Log.Info("email scheduler dispatch finished",
-			zap.Int64("campaign_id", camp.Id),
-			zap.Int64("user_id", camp.UserId),
-			zap.Duration("duration", time.Since(startedAt)),
-			zap.Int("queue_depth", len(s.queue)),
-		)
 
 		s.inFlight.Delete(camp.Id)
 	}
@@ -100,25 +86,16 @@ func (s *CampaignEmailScheduler) processTick() {
 		return
 	}
 
-	enqueuedCount := 0
-	skippedDevMode := 0
-	skippedInFlight := 0
-	skippedQueued := 0
-	queueFullDrops := 0
-
 	for _, camp := range campaigns {
 		if camp.DevMode {
-			skippedDevMode++
 			continue
 		}
 
 		if _, running := s.inFlight.Load(camp.Id); running {
-			skippedInFlight++
 			continue
 		}
 
 		if _, alreadyQueued := s.queued.LoadOrStore(camp.Id, true); alreadyQueued {
-			skippedQueued++
 			continue
 		}
 
@@ -132,30 +109,12 @@ func (s *CampaignEmailScheduler) processTick() {
 
 		select {
 		case s.queue <- camp:
-			enqueuedCount++
-			logger.Log.Info("campaign enqueued for dispatch",
-				zap.Int64("campaign_id", camp.Id),
-				zap.Int64("user_id", camp.UserId),
-				zap.String("dispatch_status", string(camp.EmailDispatchStatus)),
-				zap.Int("queue_depth", len(s.queue)),
-			)
 		default:
 			s.queued.Delete(camp.Id)
-			queueFullDrops++
 			logger.Log.Warn("email scheduler queue is full; campaign will be retried on next tick",
 				zap.Int64("campaign_id", camp.Id),
 				zap.Int("queue_depth", len(s.queue)),
 			)
 		}
 	}
-
-	logger.Log.Info("email scheduler tick processed",
-		zap.Int("candidates", len(campaigns)),
-		zap.Int("enqueued", enqueuedCount),
-		zap.Int("skipped_dev_mode", skippedDevMode),
-		zap.Int("skipped_in_flight", skippedInFlight),
-		zap.Int("skipped_already_queued", skippedQueued),
-		zap.Int("queue_full_drops", queueFullDrops),
-		zap.Int("queue_depth", len(s.queue)),
-	)
 }

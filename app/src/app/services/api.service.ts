@@ -19,7 +19,7 @@ import { Config } from '../models/config.model';
 import { CampaignAnalytics } from '../models/campaign-analytics.model';
 import { CreateGroupRequest, Group, GroupTarget, GroupTargetPayload, UpdateGroupRequest } from '../models/group.model';
 import { SMTPProfile, SMTPProfilePayload, SMTPTestPayload } from '../models/smtp.model';
-import { EmailTemplate, EmailTemplatePayload } from '../models/email-template.model';
+import { EmailTemplate, EmailTemplateAttachment, EmailTemplatePayload } from '../models/email-template.model';
 
 
 interface JWTPayload {
@@ -779,6 +779,43 @@ export class ApiService {
     public deleteEmailTemplate(id: number): Observable<void> {
         return this.http.delete<void>(
             `${this.settings.URL()}/email-templates/${id}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getEmailTemplateAttachments(templateId: number): Observable<EmailTemplateAttachment[]> {
+        return this.http.get<EmailTemplateAttachment[]>(
+            `${this.settings.URL()}/email-templates/${templateId}/attachments`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public uploadEmailTemplateAttachment(templateId: number, file: File): Observable<EmailTemplateAttachment> {
+        const data = new FormData();
+        data.append('file', file);
+
+        return this.http.post<EmailTemplateAttachment>(
+            `${this.settings.URL()}/email-templates/${templateId}/attachments`,
+            data,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteEmailTemplateAttachment(templateId: number, attachmentId: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/email-templates/${templateId}/attachments/${attachmentId}`,
             { headers: this.creds.headers }
         ).pipe(
             catchError((error: HttpErrorResponse) => {

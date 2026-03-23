@@ -63,3 +63,31 @@ func (r *EmailTemplateRepository) ExistsByName(name string, userID int64, isGlob
 
 	return count > 0, nil
 }
+
+func (r *EmailTemplateRepository) CreateAttachment(attachment *template.EmailTemplateAttachment) error {
+	return r.db.Create(attachment).Error
+}
+
+func (r *EmailTemplateRepository) GetAttachments(emailTemplateID int64) ([]template.EmailTemplateAttachment, error) {
+	var attachments []template.EmailTemplateAttachment
+
+	err := r.db.
+		Where("email_template_id = ?", emailTemplateID).
+		Order("created_at DESC").
+		Find(&attachments).Error
+
+	return attachments, err
+}
+
+func (r *EmailTemplateRepository) DeleteAttachment(emailTemplateID int64, attachmentID int64) error {
+	res := r.db.
+		Where("email_template_id = ? AND id = ?", emailTemplateID, attachmentID).
+		Delete(&template.EmailTemplateAttachment{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}

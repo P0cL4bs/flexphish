@@ -4,14 +4,16 @@ import { FormsModule } from '@angular/forms'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { html } from '@codemirror/lang-html'
 import { CodeEditor } from '@acrodata/code-editor'
-import { EmailTemplate, EmailTemplatePayload } from 'src/app/models/email-template.model'
+import { EmailTemplate, EmailTemplateAttachment, EmailTemplatePayload } from 'src/app/models/email-template.model'
 import { ApiService } from 'src/app/services/api.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { LucideAngularModule } from "lucide-angular";
 
 type EmailTemplateForm = {
   name: string
+  category: string
   is_global: boolean
+  track_opens: boolean
   subject: string
   body: string
 }
@@ -64,6 +66,9 @@ export class EmailTemplatesView implements OnInit {
   loading = false
   creating = false
   saving = false
+  loadingAttachments = false
+  uploadingAttachment = false
+  attachments: EmailTemplateAttachment[] = []
 
   form: EmailTemplateForm = this.createEmptyForm()
   editingTemplate: EmailTemplate | null = null
@@ -129,16 +134,22 @@ export class EmailTemplatesView implements OnInit {
     this.editingTemplate = template
     this.form = {
       name: template.name || '',
+      category: template.category || '',
       is_global: !!template.is_global,
+      track_opens: template.track_opens ?? true,
       subject: template.subject || '',
       body: template.body || ''
     }
+    this.loadAttachments(template.id)
     this.editDialog?.nativeElement.showModal()
   }
 
   closeEditDialog() {
     this.editDialog?.nativeElement.close()
     this.editingTemplate = null
+    this.attachments = []
+    this.loadingAttachments = false
+    this.uploadingAttachment = false
   }
 
   createTemplate() {
@@ -183,6 +194,67 @@ export class EmailTemplatesView implements OnInit {
       error: (err) => {
         this.saving = false
         this.toast.show(this.extractError(err, 'Failed to update email template'), 'error')
+      }
+    })
+  }
+
+  loadAttachments(templateId: number) {
+    this.loadingAttachments = true
+    this.api.getEmailTemplateAttachments(templateId).subscribe({
+      next: (attachments) => {
+        this.attachments = attachments ?? []
+        this.loadingAttachments = false
+      },
+      error: (err) => {
+        this.loadingAttachments = false
+        this.toast.show(this.extractError(err, 'Failed to load attachments'), 'error')
+      }
+    })
+  }
+
+  onAttachmentSelected(event: Event) {
+    if (!this.editingTemplate) {
+      return
+    }
+
+    const input = event.target as HTMLInputElement
+    const file = input?.files?.[0]
+    if (!file) {
+      return
+    }
+
+    this.uploadingAttachment = true
+    this.api.uploadEmailTemplateAttachment(this.editingTemplate.id, file).subscribe({
+      next: () => {
+        this.uploadingAttachment = false
+        input.value = ''
+        this.toast.show('Attachment uploaded', 'success')
+        this.loadAttachments(this.editingTemplate!.id)
+      },
+      error: (err) => {
+        this.uploadingAttachment = false
+        this.toast.show(this.extractError(err, 'Failed to upload attachment'), 'error')
+      }
+    })
+  }
+
+  deleteAttachment(attachment: EmailTemplateAttachment) {
+    if (!this.editingTemplate) {
+      return
+    }
+
+    const confirmed = window.confirm(`Delete attachment "${attachment.filename}"?`)
+    if (!confirmed) {
+      return
+    }
+
+    this.api.deleteEmailTemplateAttachment(this.editingTemplate.id, attachment.id).subscribe({
+      next: () => {
+        this.toast.show('Attachment deleted', 'success')
+        this.loadAttachments(this.editingTemplate!.id)
+      },
+      error: (err) => {
+        this.toast.show(this.extractError(err, 'Failed to delete attachment'), 'error')
       }
     })
   }
@@ -299,7 +371,9 @@ export class EmailTemplatesView implements OnInit {
   private createEmptyForm(): EmailTemplateForm {
     return {
       name: '',
+      category: '',
       is_global: false,
+      track_opens: true,
       subject: '',
       body: '<h2>Hello</h2><p>This is your email template.</p>'
     }
@@ -307,6 +381,7 @@ export class EmailTemplatesView implements OnInit {
 
   private buildPayload(): EmailTemplatePayload | null {
     const name = (this.form.name || '').trim()
+    const category = (this.form.category || '').trim()
     const subject = (this.form.subject || '').trim()
     const body = (this.form.body || '').trim()
 
@@ -317,7 +392,9 @@ export class EmailTemplatesView implements OnInit {
 
     return {
       name,
+      category,
       is_global: !!this.form.is_global,
+      track_opens: !!this.form.track_opens,
       subject,
       body
     }
@@ -399,5 +476,19 @@ export class EmailTemplatesView implements OnInit {
       return err.message
     }
     return fallback
+  }
+
+  formatBytes(size?: number): string {
+    if (!size || size <= 0) {
+      return '0 B'
+    }
+    const units = ['B', 'KB', 'MB', 'GB']
+    let value = size
+    let unit = 0
+    for (; value >= 1024 && unit < units.length - 1; unit++) {
+      value /= 1024
+    }
+    const decimals = unit === 0 ? 0 : 1
+    return `${value.toFixed(decimals)} ${units[unit]}`
   }
 }

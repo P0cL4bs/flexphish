@@ -22,4 +22,7 @@ func RegisterEmailTemplateRoutes(r *mux.Router, repo template.EmailTemplateRepos
 	emailTemplateRouter.HandleFunc("/{id}", handler.Get).Methods(http.MethodGet, http.MethodOptions)
 	emailTemplateRouter.HandleFunc("/{id}", handler.Update).Methods(http.MethodPut, http.MethodOptions)
 	emailTemplateRouter.HandleFunc("/{id}", handler.Delete).Methods(http.MethodDelete, http.MethodOptions)
+	emailTemplateRouter.HandleFunc("/{id}/attachments", handler.ListAttachments).Methods(http.MethodGet, http.MethodOptions)
+	emailTemplateRouter.HandleFunc("/{id}/attachments", handler.UploadAttachment).Methods(http.MethodPost, http.MethodOptions)
+	emailTemplateRouter.HandleFunc("/{id}/attachments/{attachmentId}", handler.DeleteAttachment).Methods(http.MethodDelete, http.MethodOptions)
 }

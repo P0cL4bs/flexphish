@@ -12,6 +12,7 @@ type Repository interface {
 	GetCampaignTargetByTargetID(campaignID int64, targetID int64) (*CampaignTarget, error)
 	GetCampaignTargetByToken(campaignID int64, token string) (*CampaignTarget, error)
 	MarkCampaignTargetOpened(campaignTargetID int64, resultID int64, ip string, userAgent string, openedAt time.Time) error
+	MarkCampaignTargetOpenedIfFirst(campaignTargetID int64, resultID *int64, ip string, userAgent string, openedAt time.Time) (bool, error)
 	MarkCampaignTargetSubmitted(campaignTargetID int64, submittedAt time.Time) error
 	Delete(id int64, userId int64) error
 	FindActiveBySubdomain(subdomain string) (*Campaign, error)

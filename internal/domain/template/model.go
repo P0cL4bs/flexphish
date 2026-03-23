@@ -87,9 +87,27 @@ type EmailTemplate struct {
 	UserId   *int64 `gorm:"index" json:"user_id,omitempty"`
 	IsGlobal bool   `gorm:"default:false" json:"is_global"`
 	Name     string `gorm:"not null" json:"name"`
+	Category string `gorm:"default:'';index" json:"category,omitempty"`
+
+	TrackOpens bool `gorm:"default:true" json:"track_opens"`
 
 	Subject string `gorm:"not null" json:"subject"`
 	Body    string `gorm:"type:text;not null" json:"body"`
+
+	Attachments []EmailTemplateAttachment `gorm:"foreignKey:EmailTemplateId;constraint:OnDelete:CASCADE" json:"attachments,omitempty"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type EmailTemplateAttachment struct {
+	Id int64 `gorm:"primaryKey" json:"id"`
+
+	EmailTemplateId int64  `gorm:"index;not null" json:"email_template_id"`
+	Filename        string `gorm:"not null" json:"filename"`
+	MimeType        string `gorm:"not null" json:"mime_type"`
+	Size            int64  `gorm:"not null" json:"size"`
+	Content         []byte `gorm:"type:blob;not null" json:"-"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

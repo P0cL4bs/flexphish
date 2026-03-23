@@ -46,4 +46,8 @@ type EmailTemplateRepository interface {
 	GetByID(id int64) (*EmailTemplate, error)
 	GetAll(userID int64) ([]EmailTemplate, error)
 	ExistsByName(name string, userID int64, isGlobal bool, excludeID *int64) (bool, error)
+
+	CreateAttachment(attachment *EmailTemplateAttachment) error
+	GetAttachments(emailTemplateID int64) ([]EmailTemplateAttachment, error)
+	DeleteAttachment(emailTemplateID int64, attachmentID int64) error
 }

@@ -214,11 +214,39 @@ func (r *CampaignRepository) MarkCampaignTargetOpened(campaignTargetID int64, re
 			"result_id":  gorm.Expr("CASE WHEN result_id IS NULL THEN ? ELSE result_id END", resultID),
 			"status":     gorm.Expr("CASE WHEN status = 'pending' THEN 'sent' ELSE status END"),
 			"opened_at":  gorm.Expr("COALESCE(opened_at, ?)", openedAt),
-			"clicked_at": gorm.Expr("COALESCE(clicked_at, ?)", openedAt),
 			"ip":         ip,
 			"user_agent": userAgent,
 			"updated_at": time.Now(),
 		}).Error
+}
+
+func (r *CampaignRepository) MarkCampaignTargetOpenedIfFirst(
+	campaignTargetID int64,
+	resultID *int64,
+	ip string,
+	userAgent string,
+	openedAt time.Time,
+) (bool, error) {
+	updateData := map[string]interface{}{
+		"status":     gorm.Expr("CASE WHEN status = 'pending' THEN 'sent' ELSE status END"),
+		"opened_at":  openedAt,
+		"ip":         ip,
+		"user_agent": userAgent,
+		"updated_at": time.Now(),
+	}
+
+	if resultID != nil {
+		updateData["result_id"] = gorm.Expr("CASE WHEN result_id IS NULL THEN ? ELSE result_id END", *resultID)
+	}
+
+	res := r.db.Model(&campaign.CampaignTarget{}).
+		Where("id = ? AND opened_at IS NULL", campaignTargetID).
+		Updates(updateData)
+	if res.Error != nil {
+		return false, res.Error
+	}
+
+	return res.RowsAffected > 0, nil
 }
 
 func (r *CampaignRepository) MarkCampaignTargetSubmitted(campaignTargetID int64, submittedAt time.Time) error {

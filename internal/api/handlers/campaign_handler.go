@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -549,13 +551,6 @@ func (h *CampaignHandler) Start(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userID int64) {
-	startedAt := time.Now()
-
-	logger.Log.Info("campaign email dispatch worker started",
-		zap.Int64("campaign_id", campaignID),
-		zap.Int64("user_id", userID),
-	)
-
 	camp, err := h.repo.GetByID(campaignID, userID)
 	if err != nil {
 		logger.Log.Error("campaign email dispatch failed to load campaign",
@@ -588,6 +583,16 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 	emailTemplate, err := h.emailTemplateRepo.GetByID(*camp.EmailTemplateId)
 	if err != nil {
 		logger.Log.Error("campaign email dispatch failed to load email template",
+			zap.Int64("campaign_id", campaignID),
+			zap.Int64("email_template_id", *camp.EmailTemplateId),
+			zap.Error(err),
+		)
+		return
+	}
+
+	attachments, err := h.emailTemplateRepo.GetAttachments(emailTemplate.Id)
+	if err != nil {
+		logger.Log.Error("campaign email dispatch failed to load email template attachments",
 			zap.Int64("campaign_id", campaignID),
 			zap.Int64("email_template_id", *camp.EmailTemplateId),
 			zap.Error(err),
@@ -643,14 +648,6 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 	var lastSendAt time.Time
 	processedInBatch := 0
 
-	logger.Log.Info("campaign email dispatch processing started",
-		zap.Int64("campaign_id", campaignID),
-		zap.Int64("targets", totalTargets),
-		zap.Int("emails_per_minute", emailsPerMinute),
-		zap.Int("batch_size", batchSize),
-		zap.Int("batch_pause_ms", batchPauseMS),
-	)
-
 	for _, t := range targets {
 		existingTarget, err := h.repo.GetCampaignTargetByTargetID(camp.Id, t.Id)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -697,7 +694,11 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 		trackedURL := fmt.Sprintf("%s?s=%s", baseURL, token)
 		subject := renderEmailTemplateField(emailTemplate.Subject, t, trackedURL)
 		body := renderEmailTemplateField(emailTemplate.Body, t, trackedURL)
-		msg, fromEmail := buildCampaignEmailMessage(profile, t.Email, subject, body)
+		if emailTemplate.TrackOpens {
+			pixelURL := fmt.Sprintf("%s/o.gif?s=%s", baseURL, token)
+			body = injectOpenTrackingPixel(body, pixelURL)
+		}
+		msg, fromEmail := buildCampaignEmailMessage(profile, t.Email, subject, body, attachments)
 
 		if !lastSendAt.IsZero() {
 			elapsed := time.Since(lastSendAt)
@@ -753,6 +754,12 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 			continue
 		}
 
+		logger.Log.Info("campaign email sent",
+			zap.Int64("campaign_id", camp.Id),
+			zap.Int64("target_id", t.Id),
+			zap.String("email", t.Email),
+		)
+
 		sentCount++
 		lastSendAt = time.Now()
 		processedInBatch++
@@ -779,16 +786,6 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 	}
 	_ = h.repo.Update(camp)
 
-	logger.Log.Info("campaign email dispatch worker finished",
-		zap.Int64("campaign_id", campaignID),
-		zap.Int64("user_id", userID),
-		zap.Int64("total_targets", camp.EmailDispatchTotalTargets),
-		zap.Int64("sent", camp.EmailDispatchSent),
-		zap.Int64("failed", camp.EmailDispatchFailed),
-		zap.Int64("pending", camp.EmailDispatchPending),
-		zap.String("dispatch_status", string(camp.EmailDispatchStatus)),
-		zap.Duration("duration", time.Since(startedAt)),
-	)
 }
 
 func maxInt64(a int64, b int64) int64 {
@@ -856,7 +853,27 @@ func renderEmailTemplateField(content string, t target.Target, url string) strin
 	return replacer.Replace(content)
 }
 
-func buildCampaignEmailMessage(profile *smtp.SMTPProfile, recipient string, subject string, body string) ([]byte, string) {
+func injectOpenTrackingPixel(body string, pixelURL string) string {
+	pixelTag := fmt.Sprintf(
+		`<img src="%s" alt="" width="1" height="1" style="display:none;max-width:1px;max-height:1px;" />`,
+		pixelURL,
+	)
+
+	lower := strings.ToLower(body)
+	bodyEnd := strings.LastIndex(lower, "</body>")
+	if bodyEnd >= 0 {
+		return body[:bodyEnd] + pixelTag + body[bodyEnd:]
+	}
+	return body + pixelTag
+}
+
+func buildCampaignEmailMessage(
+	profile *smtp.SMTPProfile,
+	recipient string,
+	subject string,
+	body string,
+	attachments []template.EmailTemplateAttachment,
+) ([]byte, string) {
 	fromEmail := profile.FromEmail
 	if strings.TrimSpace(fromEmail) == "" {
 		fromEmail = profile.Username
@@ -867,17 +884,70 @@ func buildCampaignEmailMessage(profile *smtp.SMTPProfile, recipient string, subj
 		fromHeader = fmt.Sprintf("%s <%s>", profile.FromName, fromEmail)
 	}
 
-	msg := []byte(
-		"From: " + fromHeader + "\r\n" +
-			"To: " + recipient + "\r\n" +
-			"Subject: " + subject + "\r\n" +
-			"MIME-Version: 1.0\r\n" +
-			"Content-Type: text/html; charset=UTF-8\r\n" +
-			"\r\n" +
-			body + "\r\n",
-	)
+	boundary := fmt.Sprintf("fph-%d", time.Now().UnixNano())
+	var msg bytes.Buffer
 
-	return msg, fromEmail
+	msg.WriteString("From: " + fromHeader + "\r\n")
+	msg.WriteString("To: " + recipient + "\r\n")
+	msg.WriteString("Subject: " + subject + "\r\n")
+	msg.WriteString("MIME-Version: 1.0\r\n")
+
+	if len(attachments) == 0 {
+		msg.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
+		msg.WriteString("\r\n")
+		msg.WriteString(body + "\r\n")
+		return msg.Bytes(), fromEmail
+	}
+
+	msg.WriteString("Content-Type: multipart/mixed; boundary=\"" + boundary + "\"\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString("--" + boundary + "\r\n")
+	msg.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
+	msg.WriteString("Content-Transfer-Encoding: 8bit\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString(body + "\r\n")
+
+	for _, attachment := range attachments {
+		safeName := sanitizeMIMEFilename(attachment.Filename)
+		mimeType := strings.TrimSpace(attachment.MimeType)
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+
+		msg.WriteString("--" + boundary + "\r\n")
+		msg.WriteString("Content-Type: " + mimeType + "; name=\"" + safeName + "\"\r\n")
+		msg.WriteString("Content-Transfer-Encoding: base64\r\n")
+		msg.WriteString("Content-Disposition: attachment; filename=\"" + safeName + "\"\r\n")
+		msg.WriteString("\r\n")
+		writeBase64WithCRLF(&msg, attachment.Content)
+		msg.WriteString("\r\n")
+	}
+
+	msg.WriteString("--" + boundary + "--\r\n")
+	return msg.Bytes(), fromEmail
+}
+
+func sanitizeMIMEFilename(filename string) string {
+	name := strings.TrimSpace(filename)
+	if name == "" {
+		return "attachment.bin"
+	}
+	name = strings.ReplaceAll(name, "\"", "_")
+	name = strings.ReplaceAll(name, "\r", "_")
+	name = strings.ReplaceAll(name, "\n", "_")
+	return name
+}
+
+func writeBase64WithCRLF(buf *bytes.Buffer, content []byte) {
+	encoded := base64.StdEncoding.EncodeToString(content)
+	const lineLen = 76
+	for i := 0; i < len(encoded); i += lineLen {
+		end := i + lineLen
+		if end > len(encoded) {
+			end = len(encoded)
+		}
+		buf.WriteString(encoded[i:end] + "\r\n")
+	}
 }
 
 func (h *CampaignHandler) Stop(w http.ResponseWriter, r *http.Request) {

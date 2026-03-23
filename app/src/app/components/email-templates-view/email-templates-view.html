@@ -28,14 +28,21 @@
           <div class="flex items-start justify-between gap-2">
             <div>
               <h3 class="font-semibold leading-tight">{{ template.name }}</h3>
+              <p class="text-xs opacity-70 mt-1" *ngIf="template.category">Category: {{ template.category }}</p>
               <p class="text-xs uppercase font-semibold opacity-60 mt-1 truncate max-w-[260px]">
                 {{ renderTemplateSubject(template) }}
               </p>
             </div>
-            <span class="badge badge-soft" [class.badge-primary]="template.is_global"
-              [class.badge-secondary]="!template.is_global">
-              {{ template.is_global ? 'global' : 'private' }}
-            </span>
+            <div class="flex flex-col gap-1 items-end">
+              <span class="badge badge-soft" [class.badge-primary]="template.is_global"
+                [class.badge-secondary]="!template.is_global">
+                {{ template.is_global ? 'global' : 'private' }}
+              </span>
+              <span class="badge badge-soft" [class.badge-success]="template.track_opens"
+                [class.badge-ghost]="!template.track_opens">
+                {{ template.track_opens ? 'open tracking on' : 'open tracking off' }}
+              </span>
+            </div>
           </div>
 
           <div class="text-xs opacity-60">
@@ -72,6 +79,10 @@
         <label class="label"><span class="label-text">Name *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.name" />
       </div>
+      <div>
+        <label class="label"><span class="label-text">Category</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.category" placeholder="HR, Finance, IT..." />
+      </div>
       <div class="md:col-span-2">
         <label class="label"><span class="label-text">Subject *</span></label>
         <input #createSubjectInput class="input input-bordered w-full" [(ngModel)]="form.subject" />
@@ -79,6 +90,10 @@
       <label class="label cursor-pointer justify-between md:col-span-3 p-2 border border-base-300 rounded-box">
         <span class="label-text">Global template</span>
         <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
+      </label>
+      <label class="label cursor-pointer justify-between md:col-span-3 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Track email opens (pixel)</span>
+        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.track_opens" />
       </label>
     </div>
 
@@ -154,6 +169,10 @@
         <label class="label"><span class="label-text">Name *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.name" />
       </div>
+      <div>
+        <label class="label"><span class="label-text">Category</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="form.category" placeholder="HR, Finance, IT..." />
+      </div>
       <div class="md:col-span-2">
         <label class="label"><span class="label-text">Subject *</span></label>
         <input #editSubjectInput class="input input-bordered w-full" [(ngModel)]="form.subject" />
@@ -162,6 +181,53 @@
         <span class="label-text">Global template</span>
         <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
       </label>
+      <label class="label cursor-pointer justify-between md:col-span-3 p-2 border border-base-300 rounded-box">
+        <span class="label-text">Track email opens (pixel)</span>
+        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.track_opens" />
+      </label>
+    </div>
+
+    <div class="card bg-base-200 border border-base-300 mb-4">
+      <div class="card-body p-3">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <h4 class="font-semibold">Attachments</h4>
+          <label class="btn btn-sm btn-outline" [class.loading]="uploadingAttachment" [class.btn-disabled]="uploadingAttachment">
+            + Upload file
+            <input type="file" class="hidden" [disabled]="uploadingAttachment" (change)="onAttachmentSelected($event)" />
+          </label>
+        </div>
+
+        <div *ngIf="loadingAttachments" class="py-3">
+          <span class="loading loading-spinner loading-sm"></span>
+        </div>
+
+        <div *ngIf="!loadingAttachments && attachments.length === 0" class="text-sm opacity-70">
+          No attachments yet.
+        </div>
+
+        <div *ngIf="!loadingAttachments && attachments.length > 0" class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Filename</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let attachment of attachments">
+                <td class="max-w-[260px] truncate">{{ attachment.filename }}</td>
+                <td>{{ attachment.mime_type }}</td>
+                <td>{{ formatBytes(attachment.size) }}</td>
+                <td class="text-right">
+                  <button class="btn btn-xs btn-soft text-error" (click)="deleteAttachment(attachment)">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div class="card bg-base-200 border border-base-300 mb-4">
