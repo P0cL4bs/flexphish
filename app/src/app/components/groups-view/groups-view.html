@@ -16,7 +16,7 @@
 
         <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
           <lucide-icon name="search" size="18"></lucide-icon>
-          <input type="text" class="grow" placeholder="Search group by name..." [(ngModel)]="groupsSearch"
+          <input type="text" class="grow w-full" placeholder="Search group by name..." [(ngModel)]="groupsSearch"
             (input)="applyGroupFilter()" />
         </label>
 
@@ -105,20 +105,22 @@
             <input #targetsImportInput type="file" class="hidden" accept=".csv,.xml,text/csv,application/xml,text/xml"
               (change)="onTargetsFileSelected($event)" />
 
-            <button class="btn btn-outline" [class.loading]="importingTargets" [disabled]="!selectedGroup || importingTargets"
-              (click)="triggerTargetImport()">
+            <button class="btn btn-outline" [class.loading]="importingTargets"
+              [disabled]="!selectedGroup || importingTargets" (click)="triggerTargetImport()">
               <lucide-icon *ngIf="!importingTargets" name="file-up" size="16"></lucide-icon>
               Import CSV/XML
             </button>
 
-            <button class="btn btn-secondary" [disabled]="!selectedGroup || importingTargets" (click)="openCreateTargetDialog()">
+            <button class="btn btn-secondary" [disabled]="!selectedGroup || importingTargets"
+              (click)="openCreateTargetDialog()">
               + Add Target
             </button>
           </div>
         </div>
 
         <div *ngIf="selectedGroup" class="text-xs opacity-70">
-          Import files must include target fields: <code>first_name</code>, <code>last_name</code>, <code>email</code>, <code>position</code>.
+          Import files must include target fields: <code>first_name</code>, <code>last_name</code>, <code>email</code>,
+          <code>position</code>.
         </div>
 
         <div *ngIf="selectedGroup"

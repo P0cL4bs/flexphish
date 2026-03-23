@@ -83,7 +83,8 @@
                     </li>
 
                     <!-- RESCHEDULE -->
-                    <li *ngIf="campaign?.status !== 'active' && campaign?.status !== 'completed' && campaign?.status !== 'cancelled'">
+                    <li
+                        *ngIf="campaign?.status !== 'active' && campaign?.status !== 'completed' && campaign?.status !== 'cancelled'">
                         <a (click)="openRescheduleCampaignModal()" class="text-accent">
                             <lucide-icon name="calendar-clock" size="16"></lucide-icon>
                             Reschedule
@@ -120,6 +121,11 @@
                 Overview
             </label>
             <div class="tab-content bg-base-100 border border-base-300 p-6">
+                <div *ngIf="isTabLoading('overview')" class="flex items-center justify-center min-h-[320px]">
+                    <span class="loading loading-spinner loading-lg"></span>
+                </div>
+
+                <div *ngIf="!isTabLoading('overview')">
                 <!-- STATS -->
                 <div class="stats shadow w-full mb-4 bg-base-100 border border-base-300">
 
@@ -373,6 +379,7 @@
                 </div>
 
             </div>
+            </div>
 
             <label class="tab">
                 <input type="radio" name="campaign_detail_tabs" [checked]="activeTab === 'delivery'"
@@ -381,6 +388,11 @@
                 Target Delivery
             </label>
             <div class="tab-content bg-base-100 border border-base-300 p-6">
+                <div *ngIf="isTabLoading('delivery')" class="flex items-center justify-center min-h-[320px]">
+                    <span class="loading loading-spinner loading-lg"></span>
+                </div>
+
+                <div *ngIf="!isTabLoading('delivery')">
                 <div class="card bg-base-100 border border-base-300 shadow-sm pt-2">
                     <div class="card-body">
                         <div class="flex items-center justify-between mb-4">
@@ -511,6 +523,7 @@
                 </div>
 
             </div>
+            </div>
 
             <label class="tab">
                 <input type="radio" name="campaign_detail_tabs" [checked]="activeTab === 'results'"
@@ -519,6 +532,11 @@
                 Results
             </label>
             <div class="tab-content bg-base-100 border border-base-300 p-6">
+                <div *ngIf="isTabLoading('results')" class="flex items-center justify-center min-h-[320px]">
+                    <span class="loading loading-spinner loading-lg"></span>
+                </div>
+
+                <div *ngIf="!isTabLoading('results')">
                 <div class="">
                     <div class="card-body">
 
@@ -762,6 +780,7 @@
 
                     </div>
                 </div>
+                </div>
             </div>
         </div>
     </div>
@@ -820,18 +839,12 @@
                         <span class="label-text">Template</span>
                     </label>
 
-                    <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.template_id"
-                        name="template_id" [disabled]="loadingTemplates">
-
-                        <option value="" disabled>
-                            {{ loadingTemplates ? 'Loading templates...' : 'Select a template' }}
-                        </option>
-
-                        <option *ngFor="let t of templates" [ngValue]="t.filename">
-                            {{ t.name || t.filename }}
-                        </option>
-
-                    </select>
+                    <app-grouped-single-select [groups]="templateSelectGroups"
+                        [value]="editCampaignData.template_id || null" (valueChange)="onEditTemplateSelected($event)"
+                        [disabled]="loadingTemplates" [loading]="loadingTemplates" placeholder="Select a template"
+                        loadingLabel="Loading templates..." searchPlaceholder="Search template..."
+                        emptyStateLabel="No templates found" [allowClear]="false">
+                    </app-grouped-single-select>
 
                 </div>
 
@@ -842,7 +855,7 @@
                     </label>
 
                     <div class="dropdown w-full">
-                        <div tabindex="0" role="button" class="btn btn-outline w-full justify-between"
+                        <div tabindex="0" role="button" class="btn btn-soft w-full justify-between"
                             [class.btn-disabled]="loadingGroups">
                             <span>{{ loadingGroups ? 'Loading groups...' : getEditGroupsDropdownLabel() }}</span>
                             <span class="opacity-70">▼</span>
@@ -883,18 +896,12 @@
                         <span class="label-text">SMTP Profile</span>
                     </label>
 
-                    <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.smtp_profile_id"
-                        name="smtp_profile_id" [disabled]="loadingSMTPProfiles">
-
-                        <option [ngValue]="null">
-                            {{ loadingSMTPProfiles ? 'Loading SMTP profiles...' : 'No SMTP profile' }}
-                        </option>
-
-                        <option *ngFor="let profile of smtpProfiles" [ngValue]="profile.id">
-                            {{ profile.name }} ({{ profile.host }}:{{ profile.port }})
-                        </option>
-
-                    </select>
+                    <app-grouped-single-select [groups]="smtpProfileSelectGroups"
+                        [value]="editCampaignData.smtp_profile_id" (valueChange)="onEditSMTPProfileSelected($event)"
+                        [disabled]="loadingSMTPProfiles" [loading]="loadingSMTPProfiles" placeholder="No SMTP profile"
+                        loadingLabel="Loading SMTP profiles..." searchPlaceholder="Search SMTP profile..."
+                        emptyStateLabel="No SMTP profiles found" clearLabel="No SMTP profile">
+                    </app-grouped-single-select>
                 </div>
 
                 <!-- Email Template -->
@@ -903,18 +910,13 @@
                         <span class="label-text">Email Template</span>
                     </label>
 
-                    <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.email_template_id"
-                        name="email_template_id" [disabled]="loadingEmailTemplates">
-
-                        <option [ngValue]="null">
-                            {{ loadingEmailTemplates ? 'Loading email templates...' : 'No email template' }}
-                        </option>
-
-                        <option *ngFor="let emailTemplate of emailTemplates" [ngValue]="emailTemplate.id">
-                            {{ emailTemplate.name }}
-                        </option>
-
-                    </select>
+                    <app-grouped-single-select [groups]="emailTemplateSelectGroups"
+                        [value]="editCampaignData.email_template_id" (valueChange)="onEditEmailTemplateSelected($event)"
+                        [disabled]="loadingEmailTemplates" [loading]="loadingEmailTemplates"
+                        placeholder="No email template" loadingLabel="Loading email templates..."
+                        searchPlaceholder="Search email template..." emptyStateLabel="No email templates found"
+                        clearLabel="No email template">
+                    </app-grouped-single-select>
                 </div>
                 <!-- Dev Mode -->
                 <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
@@ -938,29 +940,30 @@
                             <label class="label">
                                 <span class="label-text">Date</span>
                             </label>
-                            <input type="date" class="input input-bordered w-full" [(ngModel)]="editCampaignData.schedule_date"
-                                name="schedule_date" />
+                            <input type="date" class="input input-bordered w-full"
+                                [(ngModel)]="editCampaignData.schedule_date" name="schedule_date" />
                         </div>
                         <div>
                             <label class="label">
                                 <span class="label-text">Time</span>
                             </label>
-                            <input type="time" class="input input-bordered w-full" [(ngModel)]="editCampaignData.schedule_time"
-                                name="schedule_time" />
+                            <input type="time" class="input input-bordered w-full"
+                                [(ngModel)]="editCampaignData.schedule_time" name="schedule_time" />
                         </div>
                         <div>
                             <label class="label">
                                 <span class="label-text">Timezone</span>
                             </label>
-                            <select class="select select-bordered w-full" [(ngModel)]="editCampaignData.schedule_timezone"
-                                name="schedule_timezone">
+                            <select class="select select-bordered w-full"
+                                [(ngModel)]="editCampaignData.schedule_timezone" name="schedule_timezone">
                                 <option *ngFor="let tz of availableTimezones" [ngValue]="tz">{{ tz }}</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="alert alert-warning mt-3 text-sm" *ngIf="editCampaignData.schedule_enabled">
-                        Rescheduling this campaign resets delivery status to Pending and clears the current send history.
+                        Rescheduling this campaign resets delivery status to Pending and clears the current send
+                        history.
                     </div>
                 </fieldset>
 

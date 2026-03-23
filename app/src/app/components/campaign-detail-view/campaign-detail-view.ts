@@ -25,12 +25,13 @@ import { SMTPProfile } from 'src/app/models/smtp.model';
 import { EmailTemplate } from 'src/app/models/email-template.model';
 import { CampaignTarget } from 'src/app/models/campaign-target.model';
 import { LucideAngularModule } from 'lucide-angular';
+import { GroupedSelectGroup, GroupedSingleSelect } from '../shared/grouped-single-select/grouped-single-select';
 
 type CampaignDetailTab = 'overview' | 'delivery' | 'results';
 
 @Component({
   selector: 'app-campaign-detail-view',
-  imports: [CommonModule, RouterModule, FormsModule, FontAwesomeModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, FormsModule, FontAwesomeModule, LucideAngularModule, GroupedSingleSelect],
   templateUrl: './campaign-detail-view.html',
   styleUrl: './campaign-detail-view.css'
 })
@@ -80,17 +81,26 @@ export class CampaignDetailView {
   eventSearchTerm: string = '';
   dispatchSearchTerm: string = '';
   activeTab: CampaignDetailTab = 'overview';
+  tabLoading = false;
+  tabLoadingTab: CampaignDetailTab | null = null;
 
   config!: Config;
 
   resultToDelete: any = null;
   expandedResultId: number | null = null;
   emailDeliveryPollingId: ReturnType<typeof setInterval> | null = null;
+  tabLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   devModeErrorMessage = 'Email sending is not allowed while development mode is enabled.';
   availableTimezones: string[] = [];
 
   setActiveTab(tab: CampaignDetailTab) {
+    if (this.activeTab === tab) {
+      return;
+    }
+
     this.activeTab = tab;
+    this.startTabLoading(tab);
+
     if (!this.campaignId) {
       return;
     }
@@ -100,6 +110,11 @@ export class CampaignDetailView {
 
   goToResultsTab(target?: CampaignTarget) {
     if (!this.campaignId) return;
+
+    if (this.activeTab !== 'results') {
+      this.activeTab = 'results';
+      this.startTabLoading('results');
+    }
 
     const queryParams: Record<string, string> = {};
     if (target?.result?.session_id) {
@@ -171,6 +186,34 @@ export class CampaignDetailView {
 
   ngOnDestroy(): void {
     this.stopEmailDeliveryPolling();
+    if (this.tabLoadingTimer) {
+      clearTimeout(this.tabLoadingTimer);
+      this.tabLoadingTimer = null;
+    }
+  }
+
+  isTabLoading(tab: CampaignDetailTab): boolean {
+    return this.activeTab === tab && this.tabLoading && this.tabLoadingTab === tab;
+  }
+
+  private startTabLoading(tab: CampaignDetailTab): void {
+    if (this.tabLoadingTimer) {
+      clearTimeout(this.tabLoadingTimer);
+      this.tabLoadingTimer = null;
+    }
+
+    this.tabLoading = true;
+    this.tabLoadingTab = tab;
+
+    this.tabLoadingTimer = setTimeout(() => {
+      if (this.activeTab !== tab) {
+        return;
+      }
+
+      this.tabLoading = false;
+      this.tabLoadingTab = null;
+      this.tabLoadingTimer = null;
+    }, 3000);
   }
 
   private syncActiveTabFromRoute() {
@@ -297,6 +340,101 @@ export class CampaignDetailView {
       }
     });
   }
+
+  onEditTemplateSelected(value: string | number | null): void {
+    this.editCampaignData.template_id = typeof value === 'string' ? value : '';
+  }
+
+  onEditSMTPProfileSelected(value: string | number | null): void {
+    this.editCampaignData.smtp_profile_id = this.toNumberValue(value);
+  }
+
+  onEditEmailTemplateSelected(value: string | number | null): void {
+    this.editCampaignData.email_template_id = this.toNumberValue(value);
+  }
+
+  get templateSelectGroups(): GroupedSelectGroup[] {
+    const options = this.templates.map(template => {
+      const rawCategory = template.category || template.info?.category || '';
+      const category = rawCategory.trim() || 'Uncategorized';
+      const label = template.name?.trim() || template.filename;
+
+      return {
+        group: category,
+        label,
+        value: template.filename,
+        description: label !== template.filename ? template.filename : undefined,
+        searchText: (template.tags || template.info?.tags || []).join(' ')
+      };
+    });
+
+    return this.groupSelectOptions(options);
+  }
+
+  get smtpProfileSelectGroups(): GroupedSelectGroup[] {
+    const options = this.smtpProfiles.map(profile => ({
+      group: profile.is_global ? 'Global profiles' : 'Personal profiles',
+      label: profile.name,
+      value: profile.id,
+      description: `${profile.host}:${profile.port}`,
+      searchText: `${profile.host} ${profile.username} ${profile.from_email || ''}`
+    }));
+
+    return this.groupSelectOptions(options);
+  }
+
+  get emailTemplateSelectGroups(): GroupedSelectGroup[] {
+    const options = this.emailTemplates.map(template => ({
+      group: (template.category || '').trim() || (template.is_global ? 'Global templates' : 'Uncategorized'),
+      label: template.name,
+      value: template.id,
+      description: template.subject,
+      searchText: template.subject
+    }));
+
+    return this.groupSelectOptions(options);
+  }
+
+  private groupSelectOptions(
+    options: Array<{ group: string; label: string; value: string | number; description?: string; searchText?: string }>
+  ): GroupedSelectGroup[] {
+    const grouped = new Map<string, GroupedSelectGroup>();
+
+    for (const option of options) {
+      const groupLabel = option.group.trim() || 'Other';
+      if (!grouped.has(groupLabel)) {
+        grouped.set(groupLabel, { label: groupLabel, options: [] });
+      }
+
+      grouped.get(groupLabel)?.options.push({
+        label: option.label,
+        value: option.value,
+        description: option.description,
+        searchText: option.searchText,
+      });
+    }
+
+    return Array.from(grouped.values())
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map(group => ({
+        ...group,
+        options: [...group.options].sort((a, b) => a.label.localeCompare(b.label))
+      }));
+  }
+
+  private toNumberValue(value: string | number | null): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
   getConversion(): number {
     if (!this.campaign?.total_clicked) return 0;
     return Math.round(

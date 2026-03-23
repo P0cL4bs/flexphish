@@ -332,18 +332,11 @@
                 <label class="label">
                     <span class="label-text">Template</span>
                 </label>
-                <select class="select select-bordered w-full" [(ngModel)]="newCampaign.template_id"
-                    [disabled]="loadingTemplates">
-
-                    <option value="" disabled>
-                        {{ loadingTemplates ? 'Loading templates...' : 'Select a template' }}
-                    </option>
-
-                    <option *ngFor="let t of templates" [ngValue]="t.filename">
-                        {{ t.name || t.filename }}
-                    </option>
-
-                </select>
+                <app-grouped-single-select [groups]="templateSelectGroups" [value]="newCampaign.template_id || null"
+                    (valueChange)="onCreateTemplateSelected($event)" [disabled]="loadingTemplates"
+                    [loading]="loadingTemplates" placeholder="Select a template" loadingLabel="Loading templates..."
+                    searchPlaceholder="Search template..." emptyStateLabel="No templates found" [allowClear]="false">
+                </app-grouped-single-select>
             </div>
 
             <!-- Subdomain -->
@@ -358,7 +351,8 @@
                 <legend class="fieldset-legend">Start Time</legend>
 
                 <label class="label cursor-pointer gap-3 justify-start">
-                    <input type="checkbox" class="checkbox checkbox-primary" [(ngModel)]="newCampaign.schedule_enabled" />
+                    <input type="checkbox" class="checkbox checkbox-primary"
+                        [(ngModel)]="newCampaign.schedule_enabled" />
                     <span class="label-text">Schedule campaign start</span>
                 </label>
 
@@ -367,13 +361,15 @@
                         <label class="label">
                             <span class="label-text">Date</span>
                         </label>
-                        <input type="date" class="input input-bordered w-full" [(ngModel)]="newCampaign.schedule_date" />
+                        <input type="date" class="input input-bordered w-full"
+                            [(ngModel)]="newCampaign.schedule_date" />
                     </div>
                     <div>
                         <label class="label">
                             <span class="label-text">Time</span>
                         </label>
-                        <input type="time" class="input input-bordered w-full" [(ngModel)]="newCampaign.schedule_time" />
+                        <input type="time" class="input input-bordered w-full"
+                            [(ngModel)]="newCampaign.schedule_time" />
                     </div>
                     <div>
                         <label class="label">
@@ -393,7 +389,7 @@
                 </label>
 
                 <div class="dropdown w-full">
-                    <div tabindex="0" role="button" class="btn btn-outline w-full justify-between"
+                    <div tabindex="0" role="button" class="btn btn-soft w-full justify-between"
                         [class.btn-disabled]="loadingGroups">
                         <span>{{ loadingGroups ? 'Loading groups...' : getCreateGroupsDropdownLabel() }}</span>
                         <span class="opacity-70">▼</span>
@@ -433,15 +429,12 @@
                 <label class="label">
                     <span class="label-text">SMTP Profile</span>
                 </label>
-                <select class="select select-bordered w-full" [(ngModel)]="newCampaign.smtp_profile_id"
-                    name="create_smtp_profile_id" [disabled]="loadingSMTPProfiles">
-                    <option [ngValue]="null">
-                        {{ loadingSMTPProfiles ? 'Loading SMTP profiles...' : 'No SMTP profile' }}
-                    </option>
-                    <option *ngFor="let profile of smtpProfiles" [ngValue]="profile.id">
-                        {{ profile.name }} ({{ profile.host }}:{{ profile.port }})
-                    </option>
-                </select>
+                <app-grouped-single-select [groups]="smtpProfileSelectGroups" [value]="newCampaign.smtp_profile_id"
+                    (valueChange)="onCreateSMTPProfileSelected($event)" [disabled]="loadingSMTPProfiles"
+                    [loading]="loadingSMTPProfiles" placeholder="No SMTP profile"
+                    loadingLabel="Loading SMTP profiles..." searchPlaceholder="Search SMTP profile..."
+                    emptyStateLabel="No SMTP profiles found" clearLabel="No SMTP profile">
+                </app-grouped-single-select>
             </div>
 
             <!-- Email Template -->
@@ -449,15 +442,12 @@
                 <label class="label">
                     <span class="label-text">Email Template</span>
                 </label>
-                <select class="select select-bordered w-full" [(ngModel)]="newCampaign.email_template_id"
-                    name="create_email_template_id" [disabled]="loadingEmailTemplates">
-                    <option [ngValue]="null">
-                        {{ loadingEmailTemplates ? 'Loading email templates...' : 'No email template' }}
-                    </option>
-                    <option *ngFor="let emailTemplate of emailTemplates" [ngValue]="emailTemplate.id">
-                        {{ emailTemplate.name }}
-                    </option>
-                </select>
+                <app-grouped-single-select [groups]="emailTemplateSelectGroups" [value]="newCampaign.email_template_id"
+                    (valueChange)="onCreateEmailTemplateSelected($event)" [disabled]="loadingEmailTemplates"
+                    [loading]="loadingEmailTemplates" placeholder="No email template"
+                    loadingLabel="Loading email templates..." searchPlaceholder="Search email template..."
+                    emptyStateLabel="No email templates found" clearLabel="No email template">
+                </app-grouped-single-select>
             </div>
             <!-- Dev Mode -->
             <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">

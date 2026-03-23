@@ -13,11 +13,12 @@ import { Group } from 'src/app/models/group.model';
 import { SMTPProfile } from 'src/app/models/smtp.model';
 import { EmailTemplate } from 'src/app/models/email-template.model';
 import { CampaignTarget } from 'src/app/models/campaign-target.model';
+import { GroupedSelectGroup, GroupedSingleSelect } from '../shared/grouped-single-select/grouped-single-select';
 
 @Component({
   selector: 'app-campaign-view',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule, GroupedSingleSelect],
   templateUrl: './campaign-view.html',
   styleUrl: './campaign-view.css'
 })
@@ -151,6 +152,100 @@ export class CampaignView implements OnInit {
 
   onTemplateSelect(filename: string) {
     this.newCampaign.template_id = filename;
+  }
+
+  onCreateTemplateSelected(value: string | number | null): void {
+    this.newCampaign.template_id = typeof value === 'string' ? value : '';
+  }
+
+  onCreateSMTPProfileSelected(value: string | number | null): void {
+    this.newCampaign.smtp_profile_id = this.toNumberValue(value);
+  }
+
+  onCreateEmailTemplateSelected(value: string | number | null): void {
+    this.newCampaign.email_template_id = this.toNumberValue(value);
+  }
+
+  get templateSelectGroups(): GroupedSelectGroup[] {
+    const options = this.templates.map(template => {
+      const rawCategory = template.category || template.info?.category || '';
+      const category = rawCategory.trim() || 'Uncategorized';
+      const label = template.name?.trim() || template.filename;
+
+      return {
+        group: category,
+        label,
+        value: template.filename,
+        description: label !== template.filename ? template.filename : undefined,
+        searchText: (template.tags || template.info?.tags || []).join(' ')
+      };
+    });
+
+    return this.groupSelectOptions(options);
+  }
+
+  get smtpProfileSelectGroups(): GroupedSelectGroup[] {
+    const options = this.smtpProfiles.map(profile => ({
+      group: profile.is_global ? 'Global profiles' : 'Personal profiles',
+      label: profile.name,
+      value: profile.id,
+      description: `${profile.host}:${profile.port}`,
+      searchText: `${profile.host} ${profile.username} ${profile.from_email || ''}`
+    }));
+
+    return this.groupSelectOptions(options);
+  }
+
+  get emailTemplateSelectGroups(): GroupedSelectGroup[] {
+    const options = this.emailTemplates.map(template => ({
+      group: (template.category || '').trim() || (template.is_global ? 'Global templates' : 'Uncategorized'),
+      label: template.name,
+      value: template.id,
+      description: template.subject,
+      searchText: template.subject
+    }));
+
+    return this.groupSelectOptions(options);
+  }
+
+  private groupSelectOptions(
+    options: Array<{ group: string; label: string; value: string | number; description?: string; searchText?: string }>
+  ): GroupedSelectGroup[] {
+    const grouped = new Map<string, GroupedSelectGroup>();
+
+    for (const option of options) {
+      const groupLabel = option.group.trim() || 'Other';
+      if (!grouped.has(groupLabel)) {
+        grouped.set(groupLabel, { label: groupLabel, options: [] });
+      }
+
+      grouped.get(groupLabel)?.options.push({
+        label: option.label,
+        value: option.value,
+        description: option.description,
+        searchText: option.searchText,
+      });
+    }
+
+    return Array.from(grouped.values())
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map(group => ({
+        ...group,
+        options: [...group.options].sort((a, b) => a.label.localeCompare(b.label))
+      }));
+  }
+
+  private toNumberValue(value: string | number | null): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
   }
   loadCampaigns(): void {
     this.loading = true;
