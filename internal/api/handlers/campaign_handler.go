@@ -656,6 +656,15 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 		return
 	}
 
+	if camp.Status != campaign.StatusActive {
+		logger.Log.Info("campaign email dispatch skipped because campaign is not active",
+			zap.Int64("campaign_id", campaignID),
+			zap.Int64("user_id", userID),
+			zap.String("status", string(camp.Status)),
+		)
+		return
+	}
+
 	if !camp.SendEmails || camp.SMTPProfileId == nil || camp.EmailTemplateId == nil {
 		logger.Log.Warn("campaign email dispatch skipped due to missing email configuration",
 			zap.Int64("campaign_id", campaignID),

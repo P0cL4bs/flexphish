@@ -1,5 +1,5 @@
 package cli
 
 var (
-	Version = "1.2.1-dev"
+	Version = "1.3.0"
 )
