@@ -30,7 +30,7 @@ export class Login implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-
+    this.api.creds.clear()
     this.loginForm = this.formBuilder.group({
       username: new FormControl('', Validators.required),
       password: new FormControl('', Validators.required),

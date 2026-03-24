@@ -1,6 +1,14 @@
 campaign:
     base_domain: localhost:8001
+    url_scheme: http
     subdomain_mode: true
+email_scheduler:
+    enabled: true
+    poll_interval_seconds: 15
+    emails_per_minute: 60
+    batch_size: 25
+    batch_pause_ms: 1000
+    max_parallel_campaigns: 3
 security:
     jwt_secret: ""
     test_mode_token: ""

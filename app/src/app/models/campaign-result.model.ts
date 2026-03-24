@@ -8,6 +8,7 @@ export type ResultStatus =
 export interface CampaignResult {
     id: number;
     campaign_id: number;
+    campaign_target_id?: number;
 
     session_id: string;
 

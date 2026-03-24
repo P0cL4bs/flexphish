@@ -39,6 +39,9 @@ func SetupRoutes(
 	campaignRepo := repository.NewCampaignRepository(db, templateRepo)
 	htmlFileRepo := repository.NewHtmlFileRepository(config.GetString("template_assets_dir"), templateRepo)
 	staticFileRepo := repository.NewStaticFileRepository(config.GetString("template_assets_dir"), templateRepo)
+	groupRepo := repository.NewGroupRepository(db)
+	smtpRepo := repository.NewSMTPRepository(db)
+	emailTemplateRepo := repository.NewEmailTemplateRepository(db)
 
 	templateHandler := handlers.NewTemplateHandler(templateRepo, campaignRepo)
 	configHandler := handlers.NewConfigHandler()
@@ -46,8 +49,39 @@ func SetupRoutes(
 	RegisterTemplateRoutes(protected, templateHandler)
 	RegisterHtmlfilesRoutes(protected, handlers.NewHtmlFileHandler(htmlFileRepo, templateRepo))
 	RegisterStaticFilesRoutes(protected, handlers.NewStaticFileHandler(staticFileRepo, templateRepo))
-	RegisterCampaignRoutes(protected, campaignRepo, templateRepo, middleware.AuthMiddleware(jwtService))
+	RegisterCampaignRoutes(
+		protected,
+		campaignRepo,
+		templateRepo,
+		groupRepo,
+		smtpRepo,
+		emailTemplateRepo,
+		middleware.AuthMiddleware(jwtService),
+	)
 	RegisterConfigRoutes(protected, configHandler)
+	RegisterGroupRoutes(protected, groupRepo)
+	RegisterSMTPRoutes(protected, smtpRepo)
+	RegisterEmailTemplateRoutes(protected, emailTemplateRepo)
+
+	emailScheduler := handlers.NewCampaignEmailScheduler(
+		campaignRepo,
+		handlers.NewCampaignHandler(
+			campaignRepo,
+			templateRepo,
+			groupRepo,
+			smtpRepo,
+			emailTemplateRepo,
+		),
+		config.EmailSchedulerConfig{
+			Enabled:              config.GetBool("email_scheduler.enabled"),
+			PollIntervalSeconds:  config.GetInt("email_scheduler.poll_interval_seconds"),
+			EmailsPerMinute:      config.GetInt("email_scheduler.emails_per_minute"),
+			BatchSize:            config.GetInt("email_scheduler.batch_size"),
+			BatchPauseMS:         config.GetInt("email_scheduler.batch_pause_ms"),
+			MaxParallelCampaigns: config.GetInt("email_scheduler.max_parallel_campaigns"),
+		},
+	)
+	emailScheduler.Start()
 
 	protected.HandleFunc("/auth/validate", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from 'src/app/services/api.service';
-import { Template, TemplateHtmlFile, TemplateHtmlFileUpdateRequest, TemplateMetadata, TemplateStaticFile, TemplateStaticFileRequest, TemplateUpdateRequest } from 'src/app/models/template.model';
+import { Template, TemplateCloneRequest, TemplateHtmlFile, TemplateHtmlFileUpdateRequest, TemplateMetadata, TemplateStaticFile, TemplateStaticFileRequest, TemplateUpdateRequest } from 'src/app/models/template.model';
 
 import { yaml } from '@codemirror/lang-yaml';
 import { html } from '@codemirror/lang-html';
@@ -38,6 +38,11 @@ export class TemplateViewByID implements OnInit {
   loading = true;
 
   showDeleteModal = false;
+  showCloneModal = false;
+  cloning = false;
+  cloneNewFilename = '';
+  cloneName = '';
+  cloneDescription = '';
   htmlFiles: TemplateHtmlFile[] = [];
   originalFileContent = '';
   staticFiles: TemplateStaticFile[] = [];
@@ -151,6 +156,68 @@ export class TemplateViewByID implements OnInit {
 
   closeDeleteModal() {
     this.showDeleteModal = false;
+  }
+
+  openCloneModal() {
+    if (!this.templateMetadata || !this.template) return;
+
+    const sourceFilename = this.templateMetadata.filename;
+    const sourceName = this.template.info.name || '';
+    const sourceDescription = this.template.info.description || '';
+
+    this.cloneNewFilename = this.buildDefaultCloneFilename(sourceFilename);
+    this.cloneName = sourceName ? `${sourceName} Clone` : '';
+    this.cloneDescription = sourceDescription;
+    this.showCloneModal = true;
+  }
+
+  closeCloneModal() {
+    if (this.cloning) return;
+    this.showCloneModal = false;
+  }
+
+  cloneTemplate() {
+    if (!this.templateMetadata) return;
+
+    const sourceFilename = this.templateMetadata.filename;
+    const newFilename = this.cloneNewFilename.trim();
+    const name = this.cloneName.trim();
+    const description = this.cloneDescription.trim();
+
+    if (!newFilename || !name) {
+      this.toastr.show("New filename and name are required.", "error");
+      return;
+    }
+
+    const payload: TemplateCloneRequest = {
+      new_filename: newFilename,
+      name,
+      description
+    };
+
+    this.cloning = true;
+
+    this.api.cloneTemplate(sourceFilename, payload).subscribe({
+      next: () => {
+        this.cloning = false;
+        this.showCloneModal = false;
+        this.toastr.show("Template cloned successfully.", "success");
+        window.dispatchEvent(new Event('templates:reload'));
+
+        const cloneRoute = newFilename.replace(/\.yaml$/i, '');
+        this.router.navigate(['/templates', cloneRoute]);
+      },
+      error: (err) => {
+        this.cloning = false;
+        const message = err?.error?.error || "Failed to clone template";
+        this.toastr.show(message, "error");
+      }
+    });
+  }
+
+  private buildDefaultCloneFilename(sourceFilename: string): string {
+    const clean = sourceFilename.replace(/\.yaml$/i, '');
+    return `${clean}-clone.yaml`;
   }
 
 

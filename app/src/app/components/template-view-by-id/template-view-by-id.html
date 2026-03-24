@@ -79,6 +79,13 @@
                     </li>
 
                     <li>
+                        <a (click)="openCloneModal()">
+                            <lucide-icon size="16" name="copy"></lucide-icon>
+                            Clone
+                        </a>
+                    </li>
+
+                    <li>
                         <a (click)="openDeleteModal()" class="text-error">
                             <lucide-icon size="16" name="trash-2"></lucide-icon>
                             Delete
@@ -291,6 +298,63 @@
 
 <div *ngIf="!loading && !template" class="p-6 opacity-60 text-sm">
     Template not found.
+</div>
+
+<div class="modal" [class.modal-open]="showCloneModal">
+
+    <div class="modal-box">
+
+        <h3 class="font-bold text-lg">
+            Clone Template
+        </h3>
+
+        <p class="py-2 text-sm opacity-70">
+            Create a new editable template based on
+            <span class="font-semibold">{{ templateMetadata?.filename }}</span>.
+        </p>
+
+        <div class="space-y-3 mt-3">
+
+            <label class="form-control w-full">
+                <div class="label">
+                    <span class="label-text">New filename</span>
+                </div>
+                <input class="input input-bordered w-full" [(ngModel)]="cloneNewFilename"
+                    placeholder="facebook-login-custom.yaml" />
+            </label>
+
+            <label class="form-control w-full">
+                <div class="label">
+                    <span class="label-text">Name</span>
+                </div>
+                <input class="input input-bordered w-full" [(ngModel)]="cloneName" placeholder="Facebook Login Custom" />
+            </label>
+
+            <label class="form-control w-full">
+                <div class="label">
+                    <span class="label-text">Description</span>
+                </div>
+                <textarea class="textarea textarea-bordered w-full" rows="3"
+                    [(ngModel)]="cloneDescription"></textarea>
+            </label>
+
+        </div>
+
+        <div class="modal-action">
+
+            <button class="btn" (click)="closeCloneModal()" [disabled]="cloning">
+                Cancel
+            </button>
+
+            <button class="btn btn-primary" (click)="cloneTemplate()" [disabled]="cloning">
+                <span *ngIf="cloning" class="loading loading-spinner loading-xs"></span>
+                Clone Template
+            </button>
+
+        </div>
+
+    </div>
+
 </div>
 
 

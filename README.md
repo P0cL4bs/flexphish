@@ -4,14 +4,21 @@
 
 **Flexphish** is a flexible and modular phishing framework designed for **security professionals, red teams, and researchers** to simulate real-world phishing campaigns in controlled environments. It allows controlled testing of phishing scenarios by creating realistic login pages and capturing interactions for analysis, it provides a modern architecture with support for **custom templates, campaign management, and traffic monitor**, making it ideal for **penetration testing, awareness training, and development of phishing simulations**.
 
-![flexphish dashboard](/docs/dashboard.png)
+![flexphish dashboard](/docs/campagins.png)
 
 ## Features
 
-- Modular phishing campaign engine
-- Wildcard domain campaign 
-- YAML-based template phishing pages
-- Campaign tracking and credential capture
+- Campaign creation and management from a web dashboard
+- Wildcard subdomain campaigns
+- Realistic phishing templates with multi-step login flows
+- Group and target management for recipient segmentation
+- SMTP profile and email template management
+- Email template editor with open-tracking
+- Bulk campaign email delivery with scheduling support
+- Credential capture and interaction tracking (open, click, submit)
+- Email open tracking via pixel
+- Campaign analytics with delivery and conversion metrics
+- Built-in settings panel for platform configuration
 
 ## Releases & Installation Guide
 
@@ -27,7 +34,7 @@ https://github.com/P0cL4bs/flexphish/releases
 Pre-built binaries are available for multiple platforms, including:
 
 * Linux (amd64)
-* Windows (amd64) *(future support)*
+* Windows (amd64)
 
 Each release includes compiled binaries and release notes describing changes, improvements, and fixes.
 
@@ -39,13 +46,13 @@ Follow the steps below to quickly get Flexphish running on Linux.
 ### Download the Binary
 
 ```bash
-wget https://github.com/P0cL4bs/flexphish/releases/download/v1.2.1/flexphish_linux_amd64_18e0104.zip
+wget https://github.com/P0cL4bs/flexphish/releases/download/flexphish_vx.x.x_linux_amd64.zip 
 ```
 
 ### Extract the Archive
 
 ```bash
-unzip flexphish_linux_amd64_18e0104.zip
+unzip flexphish_vx.x.x_linux_amd64.zip 
 cd flexphish
 ```
 
@@ -110,7 +117,7 @@ After starting the server, you can access:
 
 ### Development Build
 
-If you prefer to build Flexphish from source:
+If you prefer to build Flexphish from source: 
 
 ### Requirements
 

@@ -1,5 +1,8 @@
 # Nginx + Cloudflare Setup with Wildcard SSL
 
+
+![flexphish dashboard](/docs/nginx-cloudflare-setup.png)
+
 This guide explains how to deploy **FlexPhish** behind **Nginx** with **Cloudflare DNS** and configure a **wildcard SSL certificate** using **Let's Encrypt (Certbot)**.
 Using a wildcard certificate allows FlexPhish to dynamically generate campaign domains such as:
 

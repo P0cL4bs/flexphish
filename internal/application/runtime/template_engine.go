@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -84,7 +85,8 @@ func (e *TemplateEngine) makeStepHandler(step template.Step) http.HandlerFunc {
 
 		campaignId := e.campaign.Id
 
-		res, err := e.sessionService.Resolve(w, r, campaignId)
+		campaignToken := strings.TrimSpace(r.URL.Query().Get("s"))
+		res, err := e.sessionService.Resolve(w, r, campaignId, campaignToken)
 		if err != nil {
 			handlers.JSONResponse(w, http.StatusInternalServerError, StepResponse{
 				Success: false,

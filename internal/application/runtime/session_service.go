@@ -30,7 +30,7 @@ func generateSessionID() string {
 	return hex.EncodeToString(b)
 }
 
-func (s *sessionService) Resolve(w http.ResponseWriter, r *http.Request, campaignId int64) (*result.Result, error) {
+func (s *sessionService) Resolve(w http.ResponseWriter, r *http.Request, campaignId int64, campaignToken string) (*result.Result, error) {
 
 	cookie, err := r.Cookie("fp_session")
 	var sessionID string
@@ -72,9 +72,51 @@ func (s *sessionService) Resolve(w http.ResponseWriter, r *http.Request, campaig
 				Country:    info.Country,
 				City:       info.City,
 			}
-			_ = s.campaignRepo.IncrementOpened(campaignId)
-			return s.repo.Create(res)
+			created, err := s.repo.Create(res)
+			if err != nil {
+				return nil, err
+			}
+
+			if campaignToken != "" {
+				campaignTarget, targetErr := s.campaignRepo.GetCampaignTargetByToken(campaignId, campaignToken)
+				if targetErr == nil && campaignTarget != nil {
+					created.CampaignTargetId = &campaignTarget.Id
+					_ = s.repo.Update(created)
+					openedNow, _ := s.campaignRepo.MarkCampaignTargetOpenedIfFirst(
+						campaignTarget.Id,
+						&created.Id,
+						info.IP,
+						info.UserAgent,
+						time.Now(),
+					)
+					if openedNow {
+						_ = s.campaignRepo.IncrementOpened(campaignId)
+					}
+				}
+			}
+			return created, nil
 		}
+
+		if campaignToken != "" {
+			campaignTarget, targetErr := s.campaignRepo.GetCampaignTargetByToken(campaignId, campaignToken)
+			if targetErr == nil && campaignTarget != nil {
+				if res.CampaignTargetId == nil {
+					res.CampaignTargetId = &campaignTarget.Id
+				}
+				_ = s.repo.Update(res)
+				openedNow, _ := s.campaignRepo.MarkCampaignTargetOpenedIfFirst(
+					campaignTarget.Id,
+					&res.Id,
+					info.IP,
+					info.UserAgent,
+					time.Now(),
+				)
+				if openedNow {
+					_ = s.campaignRepo.IncrementOpened(campaignId)
+				}
+			}
+		}
+
 		res.Browser = info.Browser
 		res.Device = info.Device
 		res.OS = info.OS
@@ -103,6 +145,12 @@ func (s *sessionService) Resolve(w http.ResponseWriter, r *http.Request, campaig
 		Browser:    info.Browser,
 		Country:    info.Country,
 		City:       info.City,
+	}
+	if campaignToken != "" {
+		campaignTarget, targetErr := s.campaignRepo.GetCampaignTargetByToken(campaignId, campaignToken)
+		if targetErr == nil && campaignTarget != nil {
+			res.CampaignTargetId = &campaignTarget.Id
+		}
 	}
 	return res, nil
 }

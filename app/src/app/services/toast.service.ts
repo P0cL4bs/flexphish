@@ -27,6 +27,11 @@ export class ToastService {
     remove(id: number) {
       this.toasts = this.toasts.filter(t => t.id !== id);
     }
+
+    removeFromHistory(id: number) {
+      this.history = this.history.filter(t => t.id !== id);
+      this.remove(id);
+    }
   
     getToasts(): ToastMessage[] {
       return this.toasts;

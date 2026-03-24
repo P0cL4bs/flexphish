@@ -1,5 +1,7 @@
 # Templates
 
+![flexphish dashboard](/docs/templates.png)
+
 FlexPhish templates define the **structure and behavior of phishing pages** used in campaigns.
 
 Templates are defined using **YAML configuration files** combined with **HTML pages and static assets**.

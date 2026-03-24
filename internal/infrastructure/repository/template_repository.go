@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -225,6 +226,62 @@ func (r *TemplateRepositoryObj) CreateTemplateDir(templateDir string) error {
 	}
 
 	return os.MkdirAll(path, 0755)
+}
+
+func (r *TemplateRepositoryObj) CopyTemplateDir(srcTemplateDir, dstTemplateDir string) error {
+	srcPath, err := r.resolveTemplateAssetsDir(srcTemplateDir)
+	if err != nil {
+		return err
+	}
+
+	dstPath, err := r.resolveTemplateAssetsDir(dstTemplateDir)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(dstPath, 0755); err != nil {
+		return err
+	}
+
+	return filepath.WalkDir(srcPath, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		rel, err := filepath.Rel(srcPath, path)
+		if err != nil {
+			return err
+		}
+
+		target := filepath.Join(dstPath, rel)
+
+		if d.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+
+		sourceFile, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer sourceFile.Close()
+
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		targetFile, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode().Perm())
+		if err != nil {
+			return err
+		}
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, sourceFile); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *TemplateRepositoryObj) Save(filename, content string) error {

@@ -1,0 +1,41 @@
+<div class="dropdown w-full" [class.dropdown-open]="isOpen">
+  <button type="button" class="btn btn-soft w-full justify-between" [class.btn-disabled]="disabled"
+    [disabled]="disabled" (click)="toggle()">
+    <span class="truncate text-left">{{ selectedLabel }}</span>
+    <span class="opacity-70">▼</span>
+  </button>
+
+  <div class="dropdown-content mt-2 z-[120] w-full rounded-box border border-base-300 bg-base-100 p-2 shadow-xl">
+    <label class="input input-bordered input-sm flex items-center gap-2 w-full">
+      <span class="text-xs opacity-70">Search</span>
+      <input type="text" class="grow" [placeholder]="searchPlaceholder" [(ngModel)]="search"
+        [ngModelOptions]="{ standalone: true }" [disabled]="loading" />
+    </label>
+
+    <ul class="menu menu-sm mt-2 max-h-64 w-full overflow-y-auto">
+      <li *ngIf="loading" class="px-3 py-2 opacity-70 text-sm">{{ loadingLabel }}</li>
+
+      <li *ngIf="!loading && allowClear">
+        <button type="button" [class.active]="value === null" (click)="select(null)">
+          {{ clearLabel }}
+        </button>
+      </li>
+
+      <ng-container *ngFor="let group of filteredGroups">
+        <li class="menu-title px-2 pt-3 pb-1 text-[11px] uppercase tracking-wide opacity-60">{{ group.label }}</li>
+
+        <li *ngFor="let option of group.options">
+          <button type="button" [class.active]="value === option.value" (click)="select(option.value)">
+            <div class="flex flex-col items-start">
+              <span>{{ option.label }}</span>
+              <span *ngIf="option.description" class="text-xs opacity-70">{{ option.description }}</span>
+            </div>
+          </button>
+        </li>
+      </ng-container>
+
+      <li *ngIf="!loading && filteredGroups.length === 0" class="px-3 py-2 opacity-70 text-sm">{{ emptyStateLabel }}
+      </li>
+    </ul>
+  </div>
+</div>

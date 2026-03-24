@@ -1,27 +1,70 @@
 <div class="">
 
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Campaigns</h1>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold">Campaigns</h1>
+            <p class="text-sm opacity-70 mt-1">Monitor status, delivery and conversion in one place.</p>
+        </div>
+        <button class="btn btn-primary" (click)="openCreateDialog()">
+            + New Campaign
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Total</div>
+                <div class="stat-value text-3xl">{{ total }}</div>
+            </div>
+        </div>
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Active</div>
+                <div class="stat-value text-3xl">{{ getActiveCampaignsCount() }}</div>
+            </div>
+        </div>
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Scheduled</div>
+                <div class="stat-value text-3xl">{{ getScheduledCampaignsCount() }}</div>
+            </div>
+        </div>
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Email Enabled</div>
+                <div class="stat-value text-3xl">{{ getEmailEnabledCampaignsCount() }}</div>
+            </div>
+        </div>
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col md:flex-row gap-4 mb-6">
+    <div class="flex flex-col lg:flex-row gap-3 mb-6">
 
-        <input type="text" placeholder="Search by name..." [(ngModel)]="search" (input)="applyFilters()"
-            class="input input-bordered w-full md:w-80" />
+        <label class="input input-bordered flex items-center gap-2 w-full lg:max-w-sm">
+            <lucide-icon name="search" size="18"></lucide-icon>
+            <input type="text" class="grow" placeholder="Search by name, subdomain or template..." [(ngModel)]="search"
+                (input)="applyFilters()" />
+        </label>
 
-        <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="select select-bordered w-full md:w-52">
+        <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="select select-bordered w-full lg:w-52">
 
             <option value="">All Status</option>
             <option value="draft">Draft</option>
+            <option value="scheduled">Scheduled</option>
             <option value="active">Active</option>
             <option value="stopped">Stopped</option>
             <option value="completed">Completed</option>
         </select>
 
-        <button class="btn btn-primary" (click)="openCreateDialog()">
-            + New Campaign
-        </button>
+        <select [(ngModel)]="deliveryFilter" (change)="applyFilters()" class="select select-bordered w-full lg:w-52">
+            <option value="">All Delivery</option>
+            <option value="Disabled">Disabled</option>
+            <option value="Pending">Pending</option>
+            <option value="Queued">Queued</option>
+            <option value="In progress">In progress</option>
+            <option value="Complete">Complete</option>
+            <option value="Failed">Failed</option>
+        </select>
 
     </div>
 
@@ -43,22 +86,28 @@
                 <thead>
                     <tr class="border-b-0">
                         <th class="bg-base-300 rounded-s-box lg:py-2 w-12"></th>
-                        <th class="bg-base-300 lg:py-2">Name</th>
-                        <th class="bg-base-300 lg:py-2 whitespace-nowrap">Subdomain</th>
-                        <th class="bg-base-300 lg:py-2">Status</th>
-                        <th class="bg-base-300 lg:py-2">Template</th>
-                        <th class="bg-base-300 lg:py-2">Template Tags</th>
-                        <th class="bg-base-300 lg:py-2">Launched At</th>
-                        <th class="bg-base-300 lg:py-2">Total Creds</th>
-                        <th class="bg-base-300 lg:py-2">Total Opens</th>
-                        <th class="bg-base-300 lg:py-2">Total Events</th>
-                        <th class="bg-base-300 rounded-e-box lg:py-2">Last captured</th>
+                        <th class="bg-base-300 lg:py-2 min-w-[240px]">Campaign</th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="activity" size="14"></lucide-icon>Status</span></th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="mailbox" size="14"></lucide-icon>Delivery</span></th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="users" size="14"></lucide-icon>Reach</span></th>
+                        <th class="bg-base-300 lg:py-2 min-w-[220px]"><span
+                                class="inline-flex items-center gap-1"><lucide-icon name="chart-no-axes-combined"
+                                    size="14"></lucide-icon>Performance</span></th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="layout-template" size="14"></lucide-icon>Template</span></th>
+                        <th class="bg-base-300 lg:py-2 min-w-[160px]"><span
+                                class="inline-flex items-center gap-1"><lucide-icon name="calendar-clock"
+                                    size="14"></lucide-icon>Updated</span></th>
+                        <th class="bg-base-300 rounded-e-box lg:py-2 text-right">Actions</th>
                     </tr>
                 </thead>
 
                 <tbody>
 
-                    <ng-container *ngFor="let c of filteredCampaigns">
+                    <ng-container *ngFor="let c of filteredCampaigns; trackBy: trackByCampaignId">
 
                         <!-- MAIN ROW -->
                         <tr class="cursor-pointer hover:bg-base-200 transition-colors"
@@ -75,108 +124,117 @@
 
                             </td>
 
-                            <td class="font-semibold">
-                                {{ c.name }}
+                            <td>
+                                <div class="flex flex-col gap-2">
+                                    <span class="font-semibold leading-tight">{{ c.name }}</span>
+                                    <a class="inline-flex items-center gap-1 font-bold hover:underline w-fit"
+                                        target="_blank" (click)="$event.stopPropagation()" [href]="getCampaignUrl(c)">
+                                        <span class="badge badge-soft badge-secondary badge-sm">
+                                            {{ c.subdomain }}
+                                        </span>
+                                        <span class="opacity-70">
+                                            .{{ config.campaign.base_domain }}
+                                        </span>
+                                    </a>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="badge badge-soft font-bold" [ngClass]="getStatusBadgeClass(c.status)">
+                                    <div aria-label="status" class="status" [ngClass]="getStatusDotClass(c.status)">
+                                    </div>
+                                    {{ c.status }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="flex flex-col gap-1">
+                                    <span class="badge badge-soft font-bold w-fit"
+                                        [ngClass]="getEmailDeliveryBadgeClass(c)">
+                                        {{ getEmailDeliveryLabel(c) }}
+                                    </span>
+                                    <span class="text-xs opacity-70" *ngIf="c.send_emails">Email mode enabled</span>
+                                    <span class="text-xs opacity-60" *ngIf="!c.send_emails">No SMTP/template
+                                        linked</span>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="badge badge-soft gap-1">
+                                        <lucide-icon name="users" size="12"></lucide-icon>
+                                        Groups: {{ getCampaignGroupsCount(c) }}
+                                    </span>
+                                    <span class="badge badge-soft gap-1">
+                                        <lucide-icon name="crosshair" size="12"></lucide-icon>
+                                        Targets: {{ getCampaignTargetsCount(c) }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="space-y-2 min-w-[220px]">
+                                    <div class="grid grid-cols-3 gap-1 text-xs">
+                                        <div class="tooltip tooltip-top" data-tip="Total email opens">
+                                            <span class="badge badge-soft badge-primary gap-1">
+                                                <lucide-icon name="mailbox" size="12"></lucide-icon>
+                                                {{ c.total_opened }}
+                                            </span>
+                                        </div>
+                                        <div class="tooltip tooltip-top" data-tip="Total link clicks">
+                                            <span class="badge badge-soft badge-accent gap-1">
+                                                <lucide-icon name="mouse-pointer-click" size="12"></lucide-icon>
+                                                {{ c.total_clicked }}
+                                            </span>
+                                        </div>
+                                        <div class="tooltip tooltip-top" data-tip="Total captured credentials">
+                                            <span class="badge badge-soft badge-secondary gap-1">
+                                                <lucide-icon name="key-round" size="12"></lucide-icon>
+                                                {{ c.total_submitted }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-xs opacity-70 mb-1 tooltip tooltip-top"
+                                            data-tip="Conversion = credentials submitted / clicks">
+                                            <span>Conversion</span>
+                                            <span class="text-success">{{ getConversionRate(c) }}%</span>
+                                        </div>
+                                        <progress class="progress progress-success w-full" [value]="getConversionRate(c)"
+                                            max="100"></progress>
+                                    </div>
+                                </div>
                             </td>
 
                             <td class="whitespace-nowrap">
-                                <a class="inline-flex items-center gap-1 font-bold hover:underline" target="_blank"
-                                    (click)="$event.stopPropagation()"
-                                    [href]="'http://' + c.subdomain + '.' + config.campaign.base_domain + '?test_mode_token=' + config.security.test_mode_token">
-                                    <span class="badge badge-soft badge-secondary badge-sm">
-                                        {{ c.subdomain }}
-                                    </span>
-                                    <span class="opacity-70">
-                                        .{{ config.campaign.base_domain }}
-                                    </span>
-                                </a>
+                                <div class="flex flex-col gap-1">
+                                    <span class="template-id-badge badge badge-soft badge-accent font-bold">{{
+                                        c.template_id }}</span>
+                                    <span class="badge badge-outline badge-secondary badge-sm w-fit">{{
+                                        getCampaignTemplateCategory(c) }}</span>
+                                </div>
                             </td>
 
-                            <td>
-
-                                <span class="badge badge-soft font-bold" [ngClass]="{
-                                    'badge-success': c.status === 'active',
-                                    'badge-ghost': c.status === 'draft',
-                                    'badge-warning': c.status === 'stopped',
-                                    'badge-info': c.status === 'completed'
-                                }">
-                                    <div aria-label="status" class="status" [ngClass]="{
-                                    'status-success': c.status === 'active',
-                                    'status-ghost': c.status === 'draft',
-                                    'status-warning': c.status === 'stopped',
-                                    'status-info': c.status === 'completed'
-                                }"></div>
-                                    {{ c.status }}
-
-                                </span>
-
+                            <td class="text-sm">
+                                <div class="flex flex-col gap-1">
+                                    <span>{{ c.updated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                                    <span class="text-xs opacity-70">Launch: {{ c.launch_date | date:'dd/MM/yyyy HH:mm'
+                                        }}</span>
+                                </div>
                             </td>
 
-                            <td>
-
-                                <ng-container *ngIf="getTemplateById(c.template_id) as templ; else loading">
-                                    <span
-                                        class="pr-2 mr-2 font-bold badge badge-soft badge-accent">{{c.template_id}}</span>
-                                    <span class="badge badge-outline badge-secondary badge-sm">
-                                        {{ templ.info.category }}
-                                    </span>
-
-                                </ng-container>
-
-                                <ng-template #loading>
-                                    <span class="opacity-40 text-xs">
-                                        loading...
-                                    </span>
-                                </ng-template>
-
-                            </td>
-
-                            <td>
-
-                                <ng-container *ngIf="getTemplateById(c.template_id) as templ">
-
-                                    <span *ngFor="let tag of templ.info.tags || []"
-                                        class="mr-1 badge badge-sm badge-outline badge-primary">
-
-                                        {{ tag }}
-
-                                    </span>
-
-                                </ng-container>
-
-                            </td>
-
-                            <td>
-                                {{ c.launch_date | date:'dd/MM/yyyy HH:mm' }}
-                            </td>
-
-                            <td>
-                                <span class="font-bold text-primary">{{ getTotalResults(c) }}</span>
-                            </td>
-
-                            <td>
-                                <span class="font-bold text-info">{{ getTotalOpened(c) }}</span>
-                            </td>
-
-                            <td>
-                                <span class="font-bold text-accent">{{ c.total_submitted }}</span>
-                            </td>
-
-                            <td>
-                                <span *ngIf="getLastCapture(c) as last; else noCapture">
-                                    {{ last | date:'dd/MM/yyyy HH:mm' }}
-                                </span>
-
-                                <ng-template #noCapture>
-                                    <span class="opacity-40">—</span>
-                                </ng-template>
+                            <td class="text-right">
+                                <button class="btn btn-sm btn-soft" [routerLink]="['/campaigns', c.id]"
+                                    (click)="$event.stopPropagation()">
+                                    Open
+                                </button>
                             </td>
 
                         </tr>
 
                         <!-- EXPANDED DETAILS -->
                         <tr *ngIf="expandedRow === c.id" class="mb-2 ">
-                            <td colspan="12" class="bg-base-200 p-6 w-full"> <!-- LOADING DETAILS -->
+                            <td colspan="9" class="bg-base-200 p-6 w-full"> <!-- LOADING DETAILS -->
                                 <div *ngIf="loadingDetail === c.id" class="text-center py-6"> <span
                                         class="loading loading-spinner loading-lg"></span> </div>
                                 <!-- DETAILS CONTENT -->
@@ -185,7 +243,7 @@
                                         <div>
                                             <h2 class="text-xl font-bold flex gap-3 items-center"> {{ detail.name }}
                                                 <span class="badge badge-soft"
-                                                    [ngClass]="{ 'badge-success': detail.status === 'active', 'badge-ghost': detail.status === 'draft', 'badge-warning': detail.status === 'stopped', 'badge-info': detail.status === 'completed' }">
+                                                    [ngClass]="{ 'badge-success': detail.status === 'active', 'badge-ghost': detail.status === 'draft', 'badge-accent': detail.status === 'scheduled', 'badge-warning': detail.status === 'stopped', 'badge-info': detail.status === 'completed' }">
                                                     {{ detail.status }} </span>
                                             </h2>
                                             <p class="opacity-70 text-sm mt-1"> Template: {{ detail.template_id }} </p>
@@ -319,18 +377,11 @@
                 <label class="label">
                     <span class="label-text">Template</span>
                 </label>
-                <select class="select select-bordered w-full" [(ngModel)]="newCampaign.template_id"
-                    [disabled]="loadingTemplates">
-
-                    <option value="" disabled>
-                        {{ loadingTemplates ? 'Loading templates...' : 'Select a template' }}
-                    </option>
-
-                    <option *ngFor="let t of templates" [ngValue]="t.filename">
-                        {{ t.name || t.filename }}
-                    </option>
-
-                </select>
+                <app-grouped-single-select [groups]="templateSelectGroups" [value]="newCampaign.template_id || null"
+                    (valueChange)="onCreateTemplateSelected($event)" [disabled]="loadingTemplates"
+                    [loading]="loadingTemplates" placeholder="Select a template" loadingLabel="Loading templates..."
+                    searchPlaceholder="Search template..." emptyStateLabel="No templates found" [allowClear]="false">
+                </app-grouped-single-select>
             </div>
 
             <!-- Subdomain -->
@@ -339,6 +390,109 @@
                     <span class="label-text">Subdomain</span>
                 </label>
                 <input type="text" [(ngModel)]="newCampaign.subdomain" class="input input-bordered w-full" />
+            </div>
+
+            <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">
+                <legend class="fieldset-legend">Start Time</legend>
+
+                <label class="label cursor-pointer gap-3 justify-start">
+                    <input type="checkbox" class="checkbox checkbox-primary"
+                        [(ngModel)]="newCampaign.schedule_enabled" />
+                    <span class="label-text">Schedule campaign start</span>
+                </label>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2" *ngIf="newCampaign.schedule_enabled">
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Date</span>
+                        </label>
+                        <input type="date" class="input input-bordered w-full"
+                            [(ngModel)]="newCampaign.schedule_date" />
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Time</span>
+                        </label>
+                        <input type="time" class="input input-bordered w-full"
+                            [(ngModel)]="newCampaign.schedule_time" />
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Timezone</span>
+                        </label>
+                        <select class="select select-bordered w-full" [(ngModel)]="newCampaign.schedule_timezone">
+                            <option *ngFor="let tz of availableTimezones" [ngValue]="tz">{{ tz }}</option>
+                        </select>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Groups -->
+            <div>
+                <label class="label">
+                    <span class="label-text">Groups</span>
+                </label>
+
+                <div class="dropdown w-full">
+                    <div tabindex="0" role="button" class="btn btn-soft w-full justify-between"
+                        [class.btn-disabled]="loadingGroups">
+                        <span>{{ loadingGroups ? 'Loading groups...' : getCreateGroupsDropdownLabel() }}</span>
+                        <span class="opacity-70">▼</span>
+                    </div>
+
+                    <ul tabindex="0"
+                        class="dropdown-content menu bg-base-100 rounded-box z-[100] w-full p-2 shadow border border-base-300 max-h-64 overflow-y-auto">
+
+                        <li *ngIf="!loadingGroups && groups.length === 0" class="px-3 py-2 opacity-70 text-sm">
+                            No groups available
+                        </li>
+
+                        <li *ngFor="let group of groups">
+                            <label class="label cursor-pointer justify-start gap-3 px-2">
+                                <input type="checkbox" class="checkbox checkbox-sm"
+                                    [checked]="isCreateGroupSelected(group.id)"
+                                    (change)="toggleCreateGroupSelection(group.id, $any($event.target).checked)" />
+                                <span>{{ group.name }}</span>
+                            </label>
+                        </li>
+
+                    </ul>
+                </div>
+
+                <div *ngIf="getCreateSelectedGroups().length > 0" class="mt-2 flex flex-wrap gap-2">
+                    <span *ngFor="let selectedGroup of getCreateSelectedGroups()"
+                        class="badge badge-soft badge-secondary gap-1">
+                        {{ selectedGroup.name }}
+                        <button type="button" class="cursor-pointer"
+                            (click)="removeCreateGroupSelection(selectedGroup.id)">×</button>
+                    </span>
+                </div>
+            </div>
+
+            <!-- SMTP Profile -->
+            <div>
+                <label class="label">
+                    <span class="label-text">SMTP Profile</span>
+                </label>
+                <app-grouped-single-select [groups]="smtpProfileSelectGroups" [value]="newCampaign.smtp_profile_id"
+                    (valueChange)="onCreateSMTPProfileSelected($event)" [disabled]="loadingSMTPProfiles"
+                    [loading]="loadingSMTPProfiles" placeholder="No SMTP profile"
+                    loadingLabel="Loading SMTP profiles..." searchPlaceholder="Search SMTP profile..."
+                    emptyStateLabel="No SMTP profiles found" clearLabel="No SMTP profile">
+                </app-grouped-single-select>
+            </div>
+
+            <!-- Email Template -->
+            <div>
+                <label class="label">
+                    <span class="label-text">Email Template</span>
+                </label>
+                <app-grouped-single-select [groups]="emailTemplateSelectGroups" [value]="newCampaign.email_template_id"
+                    (valueChange)="onCreateEmailTemplateSelected($event)" [disabled]="loadingEmailTemplates"
+                    [loading]="loadingEmailTemplates" placeholder="No email template"
+                    loadingLabel="Loading email templates..." searchPlaceholder="Search email template..."
+                    emptyStateLabel="No email templates found" clearLabel="No email template">
+                </app-grouped-single-select>
             </div>
             <!-- Dev Mode -->
             <fieldset class="fieldset bg-base-100 border-base-300 rounded-box border p-4">

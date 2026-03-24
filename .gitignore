@@ -12,3 +12,5 @@ configs/GeoLite2-City.mmdb
 
 
 flexphish.db
+
+configs/app.yaml

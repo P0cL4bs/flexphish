@@ -10,13 +10,16 @@ import { interval } from "rxjs/internal/observable/interval";
 import { startWith, switchMap } from "rxjs/operators";
 import { TokenResponse } from '../models/token';
 import { jwtDecode } from 'jwt-decode';
-import { Template, TemplateCreateRequest, TemplateDeleteRequest, TemplateHtmlFile, TemplateHtmlFileDeleteRequest, TemplateHtmlFileUpdateRequest, TemplateHtmlFileUploadRequest, TemplateMetadata, TemplateStaticFile, TemplateStaticFileRequest, TemplateUpdateRequest } from '../models/template.model';
+import { Template, TemplateCloneRequest, TemplateCreateRequest, TemplateDeleteRequest, TemplateHtmlFile, TemplateHtmlFileDeleteRequest, TemplateHtmlFileUpdateRequest, TemplateHtmlFileUploadRequest, TemplateMetadata, TemplateStaticFile, TemplateStaticFileRequest, TemplateUpdateRequest } from '../models/template.model';
 import { TemplatesResponse } from '../models/template-response.model';
 import { CampaignDetail } from '../models/campaign-detail.model';
 import { Campaign, CreateCampaignRequest, UpdateCampaignRequest } from '../models/campaign.model';
 import { PaginatedResponse } from '../models/paginated-response.model';
 import { Config } from '../models/config.model';
 import { CampaignAnalytics } from '../models/campaign-analytics.model';
+import { CreateGroupRequest, Group, GroupTarget, GroupTargetPayload, UpdateGroupRequest } from '../models/group.model';
+import { SMTPProfile, SMTPProfilePayload, SMTPTestPayload } from '../models/smtp.model';
+import { EmailTemplate, EmailTemplateAttachment, EmailTemplatePayload } from '../models/email-template.model';
 
 
 interface JWTPayload {
@@ -258,6 +261,52 @@ export class ApiService {
             })
         );
 
+    }
+
+    public cloneTemplate(
+        sourceFilename: string,
+        data: TemplateCloneRequest
+    ): Observable<Template> {
+
+        return this.http.post<Template>(
+            `${this.settings.URL()}/templates/${sourceFilename}/clone`,
+            data,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+
+    }
+
+    public importTemplateZip(file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this.http.post(
+            `${this.settings.URL()}/templates/import`,
+            formData,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public exportTemplateZip(filename: string): Observable<Blob> {
+        return this.http.get(
+            `${this.settings.URL()}/templates/${filename}/export`,
+            {
+                headers: this.creds.headers,
+                responseType: 'blob'
+            }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
     }
 
     public getTemplateHtmlFiles(template_id: string): Observable<TemplateHtmlFile[]> {
@@ -514,10 +563,10 @@ export class ApiService {
     }
 
 
-    public archiveCampaign(id: number): Observable<CampaignDetail> {
+    public completeCampaign(id: number): Observable<CampaignDetail> {
 
         return this.http.post<CampaignDetail>(
-            `${this.settings.URL()}/campaigns/${id}/archive`,
+            `${this.settings.URL()}/campaigns/${id}/complete`,
             {},
             { headers: this.creds.headers }
         ).pipe(
@@ -588,5 +637,237 @@ export class ApiService {
 
     }
 
-}
+    public getGroups(): Observable<Group[]> {
+        return this.http.get<Group[]>(
+            `${this.settings.URL()}/groups`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
 
+    public createGroup(payload: CreateGroupRequest): Observable<Group> {
+        return this.http.post<Group>(
+            `${this.settings.URL()}/groups`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateGroup(id: number, payload: UpdateGroupRequest): Observable<Group> {
+        return this.http.put<Group>(
+            `${this.settings.URL()}/groups/${id}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteGroup(id: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/groups/${id}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getGroupTargets(groupId: number): Observable<GroupTarget[]> {
+        return this.http.get<GroupTarget[]>(
+            `${this.settings.URL()}/groups/${groupId}/targets`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public createGroupTarget(groupId: number, payload: GroupTargetPayload): Observable<GroupTarget> {
+        return this.http.post<GroupTarget>(
+            `${this.settings.URL()}/groups/${groupId}/targets`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateGroupTarget(groupId: number, targetId: number, payload: GroupTargetPayload): Observable<GroupTarget> {
+        return this.http.put<GroupTarget>(
+            `${this.settings.URL()}/groups/${groupId}/targets/${targetId}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteGroupTarget(groupId: number, targetId: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/groups/${groupId}/targets/${targetId}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getSMTPProfiles(): Observable<SMTPProfile[]> {
+        return this.http.get<SMTPProfile[]>(
+            `${this.settings.URL()}/smtp-profiles`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public createSMTPProfile(payload: SMTPProfilePayload): Observable<SMTPProfile> {
+        return this.http.post<SMTPProfile>(
+            `${this.settings.URL()}/smtp-profiles`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateSMTPProfile(id: number, payload: SMTPProfilePayload): Observable<SMTPProfile> {
+        return this.http.put<SMTPProfile>(
+            `${this.settings.URL()}/smtp-profiles/${id}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteSMTPProfile(id: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/smtp-profiles/${id}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public testSMTPProfile(payload: SMTPTestPayload): Observable<{ message: string }> {
+        return this.http.post<{ message: string }>(
+            `${this.settings.URL()}/smtp-profiles/test`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getEmailTemplates(): Observable<EmailTemplate[]> {
+        return this.http.get<EmailTemplate[]>(
+            `${this.settings.URL()}/email-templates`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public createEmailTemplate(payload: EmailTemplatePayload): Observable<EmailTemplate> {
+        return this.http.post<EmailTemplate>(
+            `${this.settings.URL()}/email-templates`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public updateEmailTemplate(id: number, payload: EmailTemplatePayload): Observable<EmailTemplate> {
+        return this.http.put<EmailTemplate>(
+            `${this.settings.URL()}/email-templates/${id}`,
+            payload,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteEmailTemplate(id: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/email-templates/${id}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public getEmailTemplateAttachments(templateId: number): Observable<EmailTemplateAttachment[]> {
+        return this.http.get<EmailTemplateAttachment[]>(
+            `${this.settings.URL()}/email-templates/${templateId}/attachments`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public uploadEmailTemplateAttachment(templateId: number, file: File): Observable<EmailTemplateAttachment> {
+        const data = new FormData();
+        data.append('file', file);
+
+        return this.http.post<EmailTemplateAttachment>(
+            `${this.settings.URL()}/email-templates/${templateId}/attachments`,
+            data,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public deleteEmailTemplateAttachment(templateId: number, attachmentId: number): Observable<void> {
+        return this.http.delete<void>(
+            `${this.settings.URL()}/email-templates/${templateId}/attachments/${attachmentId}`,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+}

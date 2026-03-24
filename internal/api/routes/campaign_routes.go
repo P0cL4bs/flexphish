@@ -4,6 +4,8 @@ import (
 	"flexphish/internal/api/handlers"
 	"flexphish/internal/api/middleware"
 	"flexphish/internal/domain/campaign"
+	"flexphish/internal/domain/group"
+	"flexphish/internal/domain/smtp"
 	"flexphish/internal/domain/template"
 	"net/http"
 
@@ -14,10 +16,19 @@ func RegisterCampaignRoutes(
 	router *mux.Router,
 	repo campaign.Repository,
 	trepo template.TemplateRepository,
+	groupRepo group.Repository,
+	smtpRepo smtp.Repository,
+	emailTemplateRepo template.EmailTemplateRepository,
 	jwtMiddleware mux.MiddlewareFunc,
 ) {
 
-	handler := handlers.NewCampaignHandler(repo, trepo)
+	handler := handlers.NewCampaignHandler(
+		repo,
+		trepo,
+		groupRepo,
+		smtpRepo,
+		emailTemplateRepo,
+	)
 
 	campaignRouter := router.PathPrefix("/campaigns").Subrouter()
 	campaignRouter.HandleFunc("/analytics", handler.Analytics).Methods(http.MethodGet, http.MethodOptions)
@@ -33,6 +44,7 @@ func RegisterCampaignRoutes(
 
 	idRouter.HandleFunc("/start", handler.Start).Methods(http.MethodPost, http.MethodOptions)
 	idRouter.HandleFunc("/stop", handler.Stop).Methods(http.MethodPost, http.MethodOptions)
+	idRouter.HandleFunc("/complete", handler.Complete).Methods(http.MethodPost, http.MethodOptions)
 	idRouter.HandleFunc("/archive", handler.Archive).Methods(http.MethodPost, http.MethodOptions)
 
 	idRouter.HandleFunc("/results/{result_id}", handler.DeleteResult).Methods(http.MethodDelete, http.MethodOptions)

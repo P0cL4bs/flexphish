@@ -16,7 +16,17 @@ export interface Config {
 
     campaign: {
         base_domain: string
+        url_scheme: 'http' | 'https' | string
         subdomain_mode: boolean
+    }
+
+    email_scheduler: {
+        enabled: boolean
+        poll_interval_seconds: number
+        emails_per_minute: number
+        batch_size: number
+        batch_pause_ms: number
+        max_parallel_campaigns: number
     }
 
     security: {

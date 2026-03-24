@@ -7,6 +7,9 @@ import { CampaignView } from './components/campaign-view/campaign-view';
 import { CampaignDetailView } from './components/campaign-detail-view/campaign-detail-view';
 import { TemplateViewByID } from './components/template-view-by-id/template-view-by-id';
 import { ConfigView } from './components/config-view/config-view';
+import { GroupsView } from './components/groups-view/groups-view';
+import { SMTPServersView } from './components/smtp-servers-view/smtp-servers-view';
+import { EmailTemplatesView } from './components/email-templates-view/email-templates-view';
 
 export const routes: Routes = [
   {
@@ -32,12 +35,37 @@ export const routes: Routes = [
     component: CampaignView, canActivate: [AuthGuard]
   },
   {
+    path: 'campaigns/:id/target-delivery',
+    component: CampaignDetailView, canActivate: [AuthGuard]
+  },
+  {
+    path: 'campaigns/:id/target-develiry',
+    redirectTo: 'campaigns/:id/target-delivery',
+    pathMatch: 'full'
+  },
+  {
+    path: 'campaigns/:id/results',
+    component: CampaignDetailView, canActivate: [AuthGuard]
+  },
+  {
     path: 'campaigns/:id',
     component: CampaignDetailView, canActivate: [AuthGuard]
   },
   {
     path: 'config',
     component: ConfigView, canActivate: [AuthGuard]
+  },
+  {
+    path: 'groups',
+    component: GroupsView, canActivate: [AuthGuard]
+  },
+  {
+    path: 'smtp-servers',
+    component: SMTPServersView, canActivate: [AuthGuard]
+  },
+  {
+    path: 'email-templates',
+    component: EmailTemplatesView, canActivate: [AuthGuard]
   },
   { path: '**', redirectTo: 'dashboard' }
 ];

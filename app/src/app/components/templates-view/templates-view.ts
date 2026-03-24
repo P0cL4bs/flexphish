@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TemplateMetadata } from 'src/app/models/template.model';
@@ -37,9 +37,14 @@ export class TemplatesView implements OnInit {
   sortBy: 'name' | 'category' = 'name'
 
   filteredTemplates: TemplateMetadata[] = []
+  importing = false;
+  exporting = false;
+  private importInput: HTMLInputElement | null = null;
 
   @ViewChild(TemplateCreateView)
   createView!: TemplateCreateView;
+  @ViewChild('importHelpDialog')
+  importHelpDialog?: ElementRef<HTMLDialogElement>;
 
   constructor(private api: ApiService, private router: Router,
     private route: ActivatedRoute, private toastr: ToastService) { }
@@ -127,6 +132,78 @@ export class TemplatesView implements OnInit {
 
   }
 
+  openImportTemplate(input: HTMLInputElement) {
+    this.importInput = input;
+    this.importHelpDialog?.nativeElement.showModal();
+  }
+
+  closeImportHelpModal() {
+    this.importHelpDialog?.nativeElement.close();
+  }
+
+  continueImportTemplate() {
+    this.closeImportHelpModal();
+    this.importInput?.click();
+  }
+
+  onTemplateZipSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      this.toastr.show('Please select a .zip file', 'warning');
+      input.value = '';
+      return;
+    }
+
+    this.importing = true;
+    this.api.importTemplateZip(file).subscribe({
+      next: () => {
+        this.importing = false;
+        input.value = '';
+        this.toastr.show('Template imported successfully', 'success');
+        this.loadTemplates();
+      },
+      error: (err) => {
+        this.importing = false;
+        input.value = '';
+        const message = err?.error?.error || 'Failed to import template zip';
+        this.toastr.show(message, 'error');
+      }
+    });
+  }
+
+  exportActiveTemplate() {
+    const filename = this.activeTemplate;
+    if (!filename) {
+      this.toastr.show('Select a template to export', 'warning');
+      return;
+    }
+
+    this.exporting = true;
+    this.api.exportTemplateZip(filename).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename.replace(/\.yaml$/i, '') + '.zip';
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+
+        this.exporting = false;
+        this.toastr.show('Template exported', 'success');
+      },
+      error: (err) => {
+        this.exporting = false;
+        const message = err?.error?.error || 'Failed to export template';
+        this.toastr.show(message, 'error');
+      }
+    });
+  }
+
   selectTemplate(template: TemplateMetadata): void {
 
     this.router.navigate([
@@ -140,7 +217,22 @@ export class TemplatesView implements OnInit {
     this.api.getTemplatesList().subscribe({
       next: (data) => {
         this.templates = data;
-        this.filteredTemplates = data
+        this.applyFilter()
+
+        const currentFilename = this.route.firstChild?.snapshot.paramMap.get('filename')
+        const hasCurrentRouteTemplate = !!currentFilename
+        const activeExists = this.activeTemplate
+          ? this.templates.some(t => t.filename === this.activeTemplate)
+          : false
+
+        if (!hasCurrentRouteTemplate && this.filteredTemplates.length > 0) {
+          this.selectTemplate(this.filteredTemplates[0])
+          return
+        }
+
+        if (hasCurrentRouteTemplate && !activeExists && this.filteredTemplates.length > 0) {
+          this.selectTemplate(this.filteredTemplates[0])
+        }
       },
       error: (err) => {
         console.error('Failed loading templates', err);

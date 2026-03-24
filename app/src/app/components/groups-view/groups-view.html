@@ -1,0 +1,323 @@
+<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
+  <div>
+    <h2 class="text-2xl font-bold">Groups</h2>
+    <p class="text-sm opacity-70 mt-1">Manage audience groups and keep target lists organized.</p>
+  </div>
+  <button class="btn btn-primary" (click)="openCreateGroupDialog()">+ New Group</button>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+  <section class="xl:col-span-4">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-4">
+        <div class="flex items-center justify-between">
+          <h3 class="card-title text-base">Your Groups</h3>
+          <span class="badge badge-soft">{{ filteredGroups.length }}</span>
+        </div>
+
+        <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+          <lucide-icon name="search" size="18"></lucide-icon>
+          <input type="text" class="grow w-full" placeholder="Search group by name..." [(ngModel)]="groupsSearch"
+            (input)="applyGroupFilter()" />
+        </label>
+
+        <div *ngIf="loadingGroups" class="py-10 text-center">
+          <span class="loading loading-spinner loading-md"></span>
+        </div>
+
+        <div *ngIf="!loadingGroups" class="space-y-2 max-h-[65vh] overflow-y-auto pr-4">
+          <div *ngFor="let group of filteredGroups" role="button" tabindex="0"
+            class="card rounded-box border transition-all duration-200 cursor-pointer p-4 hover:bg-base-200/70 border-2 "
+            [class.border-primary]="selectedGroup?.id === group.id" [class.bg-base-200]="selectedGroup?.id === group.id"
+            [class.shadow-sm]="selectedGroup?.id === group.id" [class.border-base-300]="selectedGroup?.id !== group.id"
+            (click)="selectGroup(group)" (keydown.enter)="selectGroup(group)">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3 min-w-0">
+                <div class="avatar avatar-placeholder shrink-0">
+                  <div class="bg-neutral text-neutral-content w-12 rounded">
+                    <span class=" font-semibold">{{ getGroupInitials(group.name) }}</span>
+                  </div>
+                </div>
+
+                <div class="min-w-0">
+                  <p class="font-semibold text-base leading-tight break-words">{{ group.name }}</p>
+
+                  <span class="badge badge-soft badge-sm mt-2" [class.badge-primary]="group.is_global"
+                    [class.badge-secondary]="!group.is_global">
+                    <span class="h-1.5 w-1.5 rounded-full" [class.bg-primary]="group.is_global"
+                      [class.bg-secondary]="!group.is_global"></span>
+                    {{ group.is_global ? 'Global group' : 'Private group' }}
+                  </span>
+
+                  <div class="mt-3 flex flex-wrap items-center gap-2 text-sm opacity-80">
+                    <span class="inline-flex items-center gap-1">
+                      <lucide-icon name="users" size="14"></lucide-icon>
+                      {{ getTargetCount(group) }} targets
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dropdown dropdown-end shrink-0" (click)="$event.stopPropagation()">
+                <button tabindex="0" class="btn btn-soft btn-sm" aria-label="Group actions">
+                  <lucide-icon name="ellipsis-vertical" size="16"></lucide-icon>
+                </button>
+                <ul tabindex="0"
+                  class="dropdown-content menu bg-base-100 rounded-box z-10 w-40 p-2 shadow-lg border border-base-300">
+                  <li>
+                    <button (click)="openEditGroupDialog(group, $event)">
+                      <lucide-icon name="square-pen" size="14"></lucide-icon>
+                      Edit
+                    </button>
+                  </li>
+                  <li>
+                    <button class="text-error" (click)="deleteGroup(group, $event)">
+                      <lucide-icon name="trash-2" size="14"></lucide-icon>
+                      Delete
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="filteredGroups.length === 0"
+            class="p-6 border border-dashed border-base-300 rounded-box text-center opacity-70">
+            No groups found
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="xl:col-span-8">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h3 class="card-title">
+              {{ selectedGroup?.name || 'Select a group' }}
+            </h3>
+            <p class="text-sm opacity-70" *ngIf="selectedGroup">
+              Manage targets for this group
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <input #targetsImportInput type="file" class="hidden" accept=".csv,.xml,text/csv,application/xml,text/xml"
+              (change)="onTargetsFileSelected($event)" />
+
+            <button class="btn btn-outline" [class.loading]="importingTargets"
+              [disabled]="!selectedGroup || importingTargets" (click)="triggerTargetImport()">
+              <lucide-icon *ngIf="!importingTargets" name="file-up" size="16"></lucide-icon>
+              Import CSV/XML
+            </button>
+
+            <button class="btn btn-secondary" [disabled]="!selectedGroup || importingTargets"
+              (click)="openCreateTargetDialog()">
+              + Add Target
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="selectedGroup" class="text-xs opacity-70">
+          Import files must include target fields: <code>first_name</code>, <code>last_name</code>, <code>email</code>,
+          <code>position</code>.
+        </div>
+
+        <div *ngIf="selectedGroup"
+          class="stats stats-vertical sm:stats-horizontal bg-base-100 border border-base-300 shadow-sm">
+          <div class="stat py-3">
+            <div class="stat-figure text-secondary">
+              <lucide-icon name="users" size="18"></lucide-icon>
+            </div>
+            <div class="stat-title text-xs uppercase tracking-wide">Total targets</div>
+            <div class="stat-value text-2xl">{{ getTargetCount(selectedGroup) }}</div>
+          </div>
+          <div class="stat py-3">
+            <div class="stat-figure text-primary">
+              <lucide-icon name="search" size="18"></lucide-icon>
+            </div>
+            <div class="stat-title text-xs uppercase tracking-wide">Showing</div>
+            <div class="stat-value text-2xl">{{ filteredTargets.length }}</div>
+          </div>
+        </div>
+
+        <label class="input input-bordered flex items-center gap-2 w-full max-w-sm"
+          [class.input-disabled]="!selectedGroup">
+          <lucide-icon name="search" size="18"></lucide-icon>
+          <input type="text" class="grow" placeholder="Search target..." [(ngModel)]="targetsSearch"
+            (input)="applyTargetFilter()" [disabled]="!selectedGroup" />
+        </label>
+
+        <div *ngIf="!selectedGroup"
+          class="p-12 border border-dashed border-base-300 rounded-box text-center opacity-70">
+          Select a group to manage its targets
+        </div>
+
+        <div *ngIf="selectedGroup" class="overflow-x-auto border border-base-300 rounded-box">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th class="bg-base-200/70">First Name</th>
+                <th class="bg-base-200/70">Last Name</th>
+                <th class="bg-base-200/70">Email</th>
+                <th class="bg-base-200/70">Position</th>
+                <th class="w-28">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="loadingTargets">
+                <td colspan="5" class="text-center py-8">
+                  <span class="loading loading-spinner loading-md"></span>
+                </td>
+              </tr>
+
+              <tr *ngFor="let target of filteredTargets">
+                <td>{{ target.first_name || '-' }}</td>
+                <td>{{ target.last_name || '-' }}</td>
+                <td>{{ target.email }}</td>
+                <td>{{ target.position || '-' }}</td>
+                <td>
+                  <div class="flex items-center gap-1">
+                    <button class="btn btn-soft btn-sm" (click)="openEditTargetDialog(target)" aria-label="Edit target">
+                      <lucide-icon name="square-pen" size="16"></lucide-icon>
+                    </button>
+                    <button class="btn btn-soft btn-sm text-error" (click)="deleteTarget(target)"
+                      aria-label="Delete target">
+                      <lucide-icon name="trash-2" size="16"></lucide-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="!loadingTargets && filteredTargets.length === 0">
+                <td colspan="5" class="text-center py-8 opacity-70">No targets yet</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<dialog #createGroupDialog class="modal">
+  <div class="modal-box max-w-3xl">
+    <h3 class="font-bold text-lg mb-4">Create Group</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Group name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="groupForm.name" placeholder="Sales Team" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Visibility</span></label>
+        <select class="select select-bordered w-full" [(ngModel)]="groupForm.is_global">
+          <option [ngValue]="false">Private</option>
+          <option [ngValue]="true">Global</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider my-3">Initial Targets (Optional)</div>
+
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      <div *ngFor="let row of createGroupTargets; index as i" class="grid grid-cols-1 md:grid-cols-12 gap-2">
+        <input class="input input-bordered input-sm md:col-span-2" placeholder="First name"
+          [(ngModel)]="row.first_name" />
+        <input class="input input-bordered input-sm md:col-span-2" placeholder="Last name"
+          [(ngModel)]="row.last_name" />
+        <input class="input input-bordered input-sm md:col-span-4" placeholder="Email" [(ngModel)]="row.email" />
+        <input class="input input-bordered input-sm md:col-span-3" placeholder="Position" [(ngModel)]="row.position" />
+        <button class="btn btn-ghost btn-sm md:col-span-1 text-error" (click)="removeInitialTarget(i)">X</button>
+      </div>
+    </div>
+
+    <button class="btn btn-outline btn-sm mt-3" (click)="addInitialTarget()">+ Add Initial Target</button>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeCreateGroupDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="creatingGroup" [disabled]="creatingGroup"
+        (click)="createGroup()">Create</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #editGroupDialog class="modal">
+  <div class="modal-box max-w-lg">
+    <h3 class="font-bold text-lg mb-4">Edit Group</h3>
+
+    <label class="label"><span class="label-text">Group name</span></label>
+    <input class="input input-bordered w-full mb-3" [(ngModel)]="groupForm.name" />
+
+    <label class="label"><span class="label-text">Visibility</span></label>
+    <select class="select select-bordered w-full" [(ngModel)]="groupForm.is_global">
+      <option [ngValue]="false">Private</option>
+      <option [ngValue]="true">Global</option>
+    </select>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeEditGroupDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="savingGroup" [disabled]="savingGroup"
+        (click)="updateGroup()">Save</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #createTargetDialog class="modal">
+  <div class="modal-box max-w-xl">
+    <h3 class="font-bold text-lg mb-4">Add Target</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="label"><span class="label-text">First Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.first_name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Last Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.last_name" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Email</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.email" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Position</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.position" />
+      </div>
+    </div>
+    <div class="modal-action">
+      <button class="btn" (click)="closeCreateTargetDialog()">Cancel</button>
+      <button class="btn btn-secondary" [class.loading]="creatingTarget" [disabled]="creatingTarget"
+        (click)="createTarget()">Create Target</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #editTargetDialog class="modal">
+  <div class="modal-box max-w-xl">
+    <h3 class="font-bold text-lg mb-4">Edit Target</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="label"><span class="label-text">First Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.first_name" />
+      </div>
+      <div>
+        <label class="label"><span class="label-text">Last Name</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.last_name" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Email</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.email" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="label"><span class="label-text">Position</span></label>
+        <input class="input input-bordered w-full" [(ngModel)]="targetForm.position" />
+      </div>
+    </div>
+    <div class="modal-action">
+      <button class="btn" (click)="closeEditTargetDialog()">Cancel</button>
+      <button class="btn btn-primary" [class.loading]="savingTarget" [disabled]="savingTarget"
+        (click)="updateTarget()">Save</button>
+    </div>
+  </div>
+</dialog>

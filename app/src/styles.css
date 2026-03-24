@@ -119,6 +119,16 @@
   .card:has(> :checked) {
     outline: none !important;
   }
+
+  .modal-box {
+    border: 1px solid var(--color-base-300);
+  }
+
+  :is(.modal.modal-open, .modal[open], .modal:target) .modal-box {
+    translate: 0 0;
+    opacity: 1;
+  }
+
 }
 
 
