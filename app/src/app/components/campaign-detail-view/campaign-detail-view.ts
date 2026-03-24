@@ -24,6 +24,8 @@ import { Group } from 'src/app/models/group.model';
 import { SMTPProfile } from 'src/app/models/smtp.model';
 import { EmailTemplate } from 'src/app/models/email-template.model';
 import { CampaignTarget } from 'src/app/models/campaign-target.model';
+import { CampaignResult } from 'src/app/models/campaign-result.model';
+import { CampaignEvent } from 'src/app/models/campaign-event.model';
 import { LucideAngularModule } from 'lucide-angular';
 import { GroupedSelectGroup, GroupedSingleSelect } from '../shared/grouped-single-select/grouped-single-select';
 
@@ -92,6 +94,27 @@ export class CampaignDetailView {
   tabLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   devModeErrorMessage = 'Email sending is not allowed while development mode is enabled.';
   availableTimezones: string[] = [];
+  private filteredTargetsCache: CampaignTarget[] = [];
+  private filteredTargetsCacheTerm = '';
+  private filteredTargetsCacheSource: CampaignTarget[] | null = null;
+  private filteredResultsCache: CampaignResult[] = [];
+  private filteredResultsCacheTerm = '';
+  private filteredResultsCacheSource: CampaignResult[] | null = null;
+  filteredCampaignTargets: CampaignTarget[] = [];
+  filteredResults: CampaignResult[] = [];
+  private eventsByResultCache = new Map<number, CampaignEvent[]>();
+  private eventsByResultSource: CampaignEvent[] | null = null;
+  private deliveryStatsCacheSourceTargets: CampaignTarget[] | null = null;
+  private deliveryStatsCacheSourceGroups: Group[] | null = null;
+  private deliveryStatsCache: {
+    expected: number;
+    sent: number;
+    failed: number;
+    pending: number;
+    opened: number;
+    clicked: number;
+    submitted: number;
+  } = { expected: 0, sent: 0, failed: 0, pending: 0, opened: 0, clicked: 0, submitted: 0 };
 
   setActiveTab(tab: CampaignDetailTab) {
     if (this.activeTab === tab) {
@@ -165,13 +188,14 @@ export class CampaignDetailView {
         next: (data) => {
 
           this.campaign = data;
+          this.recomputeFilteredCampaignTargets();
+          this.recomputeFilteredResults();
           this.syncEmailDeliveryPolling();
 
           if (this.campaign.template_id) {
             this.loadTemplate(this.campaign.template_id);
           }
 
-          console.log(this.campaign);
           this.loading = false;
 
         },
@@ -437,88 +461,41 @@ export class CampaignDetailView {
 
   getConversion(): number {
     if (!this.campaign?.total_clicked) return 0;
-    return Math.round(
+    return Math.min(100, Math.round(
       (this.campaign.total_submitted / this.campaign.total_clicked) * 100
-    );
+    ));
   }
 
   getCampaignTargets(): CampaignTarget[] {
     return this.campaign?.campaign_targets || [];
   }
 
-  getFilteredCampaignTargets(): CampaignTarget[] {
-    const targets = this.getCampaignTargets();
-    const term = this.dispatchSearchTerm.trim().toLowerCase();
-
-    if (!term) {
-      return targets;
-    }
-
-    return targets.filter(target => {
-      const fullName = this.getTargetDisplayName(target).toLowerCase();
-      const email = (target.target?.email || '').toLowerCase();
-      const position = (target.target?.position || '').toLowerCase();
-      const status = (target.status || '').toLowerCase();
-      const token = (target.token || '').toLowerCase();
-      const interaction = this.getTargetInteractionLabel(target).toLowerCase();
-      const resultStatus = (target.result?.status || '').toLowerCase();
-      const sessionID = (target.result?.session_id || '').toLowerCase();
-
-      return (
-        fullName.includes(term) ||
-        email.includes(term) ||
-        position.includes(term) ||
-        status.includes(term) ||
-        token.includes(term) ||
-        interaction.includes(term) ||
-        resultStatus.includes(term) ||
-        sessionID.includes(term)
-      );
-    });
-  }
-
   getExpectedTargetsCount(): number {
-    const groups = this.campaign?.groups || [];
-    if (groups.length === 0) return this.getCampaignTargets().length;
-
-    const emails = new Set<string>();
-    for (const group of groups) {
-      for (const target of group.targets || []) {
-        const email = (target.email || '').trim().toLowerCase();
-        if (email) emails.add(email);
-      }
-    }
-
-    if (emails.size > 0) return emails.size;
-    return this.getCampaignTargets().length;
+    return this.getDeliveryStats().expected;
   }
 
   getCampaignTargetsSentCount(): number {
-    return this.getCampaignTargets().filter(target => target.status === 'sent').length;
+    return this.getDeliveryStats().sent;
   }
 
   getCampaignTargetsFailedCount(): number {
-    return this.getCampaignTargets().filter(target => target.status === 'failed').length;
+    return this.getDeliveryStats().failed;
   }
 
   getCampaignTargetsPendingCount(): number {
-    const explicitPending = this.getCampaignTargets().filter(target => target.status === 'pending').length;
-    const expected = this.getExpectedTargetsCount();
-    const resolved = this.getCampaignTargetsSentCount() + this.getCampaignTargetsFailedCount() + explicitPending;
-    const inferredPending = Math.max(expected - resolved, 0);
-    return explicitPending + inferredPending;
+    return this.getDeliveryStats().pending;
   }
 
   getCampaignTargetsOpenedCount(): number {
-    return this.getCampaignTargets().filter(target => !!target.opened_at).length;
+    return this.getDeliveryStats().opened;
   }
 
   getCampaignTargetsClickedCount(): number {
-    return this.getCampaignTargets().filter(target => !!target.clicked_at).length;
+    return this.getDeliveryStats().clicked;
   }
 
   getCampaignTargetsSubmittedCount(): number {
-    return this.getCampaignTargets().filter(target => !!target.submitted_at).length;
+    return this.getDeliveryStats().submitted;
   }
 
   isEmailDeliveryInProgress(): boolean {
@@ -638,22 +615,49 @@ export class CampaignDetailView {
     }
   }
   getEventsByResult(resultId: number) {
-    if (!this.campaign?.events) return [];
+    const events = this.campaign?.events || [];
+    if (this.eventsByResultSource !== events) {
+      this.eventsByResultSource = events;
+      this.eventsByResultCache.clear();
+      for (const event of events) {
+        const key = event.result_id;
+        if (key == null) continue;
+        const list = this.eventsByResultCache.get(key) || [];
+        list.push(event);
+        this.eventsByResultCache.set(key, list);
+      }
+    }
 
-    return this.campaign.events.filter(
-      ev => ev.result_id === resultId
-    );
+    return this.eventsByResultCache.get(resultId) || [];
+  }
+
+  onDispatchSearchChanged() {
+    this.recomputeFilteredCampaignTargets();
+  }
+
+  onEventSearchChanged() {
+    this.recomputeFilteredResults();
   }
 
   getFilteredResults() {
     const results = this.campaign?.results || [];
     const term = this.eventSearchTerm.trim().toLowerCase();
 
-    if (!term) {
-      return results;
+    if (
+      this.filteredResultsCacheSource === results &&
+      this.filteredResultsCacheTerm === term
+    ) {
+      return this.filteredResultsCache;
     }
 
-    return results.filter(result => {
+    if (!term) {
+      this.filteredResultsCacheSource = results;
+      this.filteredResultsCacheTerm = term;
+      this.filteredResultsCache = results;
+      return this.filteredResultsCache;
+    }
+
+    this.filteredResultsCache = results.filter(result => {
       return (
         result.email?.toLowerCase().includes(term) ||
         result.username?.toLowerCase().includes(term) ||
@@ -663,6 +667,131 @@ export class CampaignDetailView {
         result.status?.toLowerCase().includes(term)
       );
     });
+    this.filteredResultsCacheSource = results;
+    this.filteredResultsCacheTerm = term;
+    return this.filteredResultsCache;
+  }
+
+  private getFilteredCampaignTargetsComputed(): CampaignTarget[] {
+    const targets = this.getCampaignTargets();
+    const term = this.dispatchSearchTerm.trim().toLowerCase();
+
+    if (
+      this.filteredTargetsCacheSource === targets &&
+      this.filteredTargetsCacheTerm === term
+    ) {
+      return this.filteredTargetsCache;
+    }
+
+    if (!term) {
+      this.filteredTargetsCacheSource = targets;
+      this.filteredTargetsCacheTerm = term;
+      this.filteredTargetsCache = targets;
+      return this.filteredTargetsCache;
+    }
+
+    this.filteredTargetsCache = targets.filter(target => {
+      const fullName = this.getTargetDisplayName(target).toLowerCase();
+      const email = (target.target?.email || '').toLowerCase();
+      const position = (target.target?.position || '').toLowerCase();
+      const status = (target.status || '').toLowerCase();
+      const token = (target.token || '').toLowerCase();
+      const interaction = this.getTargetInteractionLabel(target).toLowerCase();
+      const resultStatus = (target.result?.status || '').toLowerCase();
+      const sessionID = (target.result?.session_id || '').toLowerCase();
+
+      return (
+        fullName.includes(term) ||
+        email.includes(term) ||
+        position.includes(term) ||
+        status.includes(term) ||
+        token.includes(term) ||
+        interaction.includes(term) ||
+        resultStatus.includes(term) ||
+        sessionID.includes(term)
+      );
+    });
+    this.filteredTargetsCacheSource = targets;
+    this.filteredTargetsCacheTerm = term;
+    return this.filteredTargetsCache;
+  }
+
+  trackByTargetId(_: number, target: CampaignTarget): number {
+    return target.id;
+  }
+
+  trackByResultId(_: number, result: CampaignResult): number {
+    return result.id;
+  }
+
+  trackByEventId(_: number, event: CampaignEvent): number {
+    return event.id;
+  }
+
+  private getDeliveryStats() {
+    const targets = this.getCampaignTargets();
+    const groups = this.campaign?.groups || [];
+    if (
+      this.deliveryStatsCacheSourceTargets === targets &&
+      this.deliveryStatsCacheSourceGroups === groups
+    ) {
+      return this.deliveryStatsCache;
+    }
+
+    let expected = targets.length;
+    if (groups.length > 0) {
+      const emails = new Set<string>();
+      for (const group of groups) {
+        for (const target of group.targets || []) {
+          const email = (target.email || '').trim().toLowerCase();
+          if (email) emails.add(email);
+        }
+      }
+      if (emails.size > 0) {
+        expected = emails.size;
+      }
+    }
+
+    let sent = 0;
+    let failed = 0;
+    let explicitPending = 0;
+    let opened = 0;
+    let clicked = 0;
+    let submitted = 0;
+
+    for (const target of targets) {
+      if (target.status === 'sent') sent++;
+      else if (target.status === 'failed') failed++;
+      else if (target.status === 'pending') explicitPending++;
+
+      if (target.opened_at) opened++;
+      if (target.clicked_at) clicked++;
+      if (target.submitted_at) submitted++;
+    }
+
+    const resolved = sent + failed + explicitPending;
+    const inferredPending = Math.max(expected - resolved, 0);
+
+    this.deliveryStatsCache = {
+      expected,
+      sent,
+      failed,
+      pending: explicitPending + inferredPending,
+      opened,
+      clicked,
+      submitted
+    };
+    this.deliveryStatsCacheSourceTargets = targets;
+    this.deliveryStatsCacheSourceGroups = groups;
+    return this.deliveryStatsCache;
+  }
+
+  private recomputeFilteredCampaignTargets() {
+    this.filteredCampaignTargets = this.getFilteredCampaignTargetsComputed();
+  }
+
+  private recomputeFilteredResults() {
+    this.filteredResults = this.getFilteredResults();
   }
 
   shortenUserAgent(ua?: string): string {
@@ -1000,12 +1129,12 @@ export class CampaignDetailView {
       .subscribe({
 
         next: () => {
-
-          this.campaign.results = this.campaign.results.filter(
-            (r: any) => r.id !== resultId
-          );
-
+          if (this.expandedResultId === resultId) {
+            this.expandedResultId = null;
+          }
+          this.resultToDelete = null;
           this.closeDeleteModal();
+          this.loadCampaign();
         },
 
         error: (err) => {

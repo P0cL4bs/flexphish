@@ -13,6 +13,53 @@
     </div>
   </div>
   <div class="navbar-end m-2">
+    <div class="dropdown dropdown-end mr-2" [class.dropdown-open]="isNotificationsOpen" data-notification-dropdown>
+      <button tabindex="0" class="btn btn-soft btn-sm p-2 relative" aria-label="Open notifications"
+        (click)="toggleNotifications($event)">
+        <lucide-icon size="16" name="bell"></lucide-icon>
+        <span *ngIf="notificationCount > 0"
+          class="badge badge-primary badge-sm absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full">
+          {{ notificationCount > 99 ? '99+' : notificationCount }}
+        </span>
+      </button>
+
+      <div tabindex="0" (click)="keepNotificationsOpen($event)"
+        class="dropdown-content z-[120] mt-2 w-[22rem] rounded-box border border-base-300 bg-base-100 shadow-xl">
+        <div class="flex items-center justify-between border-b border-base-300 px-4 py-3">
+          <div class="font-semibold">Notifications</div>
+          <button class="btn btn-ghost btn-xs" [disabled]="notificationCount === 0" (click)="clearNotifications()">
+            Clear all
+          </button>
+        </div>
+
+        <div class="max-h-80 overflow-y-auto">
+          <div *ngIf="notificationCount === 0" class="px-4 py-8 text-center text-sm text-base-content/60">
+            No notifications yet.
+          </div>
+
+          <div *ngFor="let notification of notifications" class="px-4 py-3 border-b border-base-200/70">
+            <div class="flex items-start justify-between gap-3">
+              <div class="text-sm leading-5 text-base-content">
+                {{ notification.text }}
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="badge badge-soft badge-xs" [ngClass]="getNotificationBadgeClass(notification.type)">
+                  {{ notification.type }}
+                </span>
+                <button class="btn btn-ghost btn-xs btn-square" aria-label="Remove notification"
+                  (click)="removeNotification(notification.id); $event.stopPropagation(); $event.preventDefault()">
+                  <lucide-icon size="14" name="x"></lucide-icon>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 text-xs text-base-content/60">
+              {{ formatNotificationTime(notification.timestamp) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="tooltip tooltip-left" *ngIf="!isVisibleCommandBar" data-tip="Show command bar"
       (click)="toggleCommandBar()">
       <button class="btn btn-soft btn-sm p-2">

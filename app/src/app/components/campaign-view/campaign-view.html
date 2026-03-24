@@ -107,7 +107,7 @@
 
                 <tbody>
 
-                    <ng-container *ngFor="let c of filteredCampaigns">
+                    <ng-container *ngFor="let c of filteredCampaigns; trackBy: trackByCampaignId">
 
                         <!-- MAIN ROW -->
                         <tr class="cursor-pointer hover:bg-base-200 transition-colors"

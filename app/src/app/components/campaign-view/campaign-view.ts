@@ -68,6 +68,12 @@ export class CampaignView implements OnInit {
   loadingDetail: number | null = null;
   templateCache: { [id: string]: Template } = {};
   loadingTemplate: { [id: string]: boolean } = {};
+  templateCategoryById: Record<string, string> = {};
+  summaryStats = {
+    active: 0,
+    scheduled: 0,
+    emailEnabled: 0
+  };
 
   config!: Config
 
@@ -143,6 +149,10 @@ export class CampaignView implements OnInit {
     this.api.getTemplatesList().subscribe({
       next: (data) => {
         this.templates = data;
+        this.templateCategoryById = this.templates.reduce((acc, template) => {
+          acc[template.filename] = (template.category || template.info?.category || '').trim() || 'Uncategorized';
+          return acc;
+        }, {} as Record<string, string>);
         this.loadingTemplates = false;
       },
       error: () => {
@@ -400,11 +410,12 @@ export class CampaignView implements OnInit {
   }
 
   applyFilters(): void {
+    const term = this.search.trim().toLowerCase();
     this.filteredCampaigns = this.campaigns.filter(c => {
       const matchesSearch =
-        c.name.toLowerCase().includes(this.search.toLowerCase()) ||
-        c.subdomain.toLowerCase().includes(this.search.toLowerCase()) ||
-        c.template_id.toLowerCase().includes(this.search.toLowerCase());
+        c.name.toLowerCase().includes(term) ||
+        c.subdomain.toLowerCase().includes(term) ||
+        c.template_id.toLowerCase().includes(term);
 
       const matchesStatus =
         this.statusFilter ? c.status === this.statusFilter : true;
@@ -414,6 +425,7 @@ export class CampaignView implements OnInit {
 
       return matchesSearch && matchesStatus && matchesDelivery;
     });
+    this.updateSummaryStats();
   }
 
   private preloadCampaignDetails(campaigns: Campaign[]): void {
@@ -476,7 +488,7 @@ export class CampaignView implements OnInit {
 
     if (clicked === 0) return 0;
 
-    return Math.round((submitted / clicked) * 100);
+    return Math.min(100, Math.round((submitted / clicked) * 100));
   }
 
   toggleRow(campaign: Campaign, event: MouseEvent) {
@@ -566,6 +578,10 @@ export class CampaignView implements OnInit {
   getEmailDeliveryLabel(campaign: Campaign): string {
     if (!campaign.send_emails) return 'Disabled';
 
+    if (campaign.email_dispatch_pending != null && campaign.email_dispatch_pending > 0) {
+      return 'In progress';
+    }
+
     if (campaign.email_dispatch_status) {
       switch (campaign.email_dispatch_status) {
         case 'queued':
@@ -585,7 +601,7 @@ export class CampaignView implements OnInit {
     const targets = this.getCampaignDeliveryTargets(campaign);
     if (targets.length === 0) return 'Pending';
 
-    const pending = targets.filter(target => target.status === 'pending').length;
+    const pending = targets.reduce((count, target) => count + (target.status === 'pending' ? 1 : 0), 0);
     if (pending > 0) return 'In progress';
 
     return 'Complete';
@@ -660,20 +676,37 @@ export class CampaignView implements OnInit {
   }
 
   getCampaignTemplateCategory(campaign: Campaign): string {
-    const template = this.getTemplateById(campaign.template_id);
-    return template?.info?.category?.trim() || 'Uncategorized';
+    return this.templateCategoryById[campaign.template_id] || 'Uncategorized';
   }
 
   getActiveCampaignsCount(): number {
-    return this.campaigns.filter(c => c.status === 'active').length;
+    return this.summaryStats.active;
   }
 
   getScheduledCampaignsCount(): number {
-    return this.campaigns.filter(c => c.status === 'scheduled').length;
+    return this.summaryStats.scheduled;
   }
 
   getEmailEnabledCampaignsCount(): number {
-    return this.campaigns.filter(c => c.send_emails).length;
+    return this.summaryStats.emailEnabled;
+  }
+
+  trackByCampaignId(_: number, campaign: Campaign): number {
+    return campaign.id;
+  }
+
+  private updateSummaryStats(): void {
+    let active = 0;
+    let scheduled = 0;
+    let emailEnabled = 0;
+
+    for (const campaign of this.campaigns) {
+      if (campaign.status === 'active') active++;
+      if (campaign.status === 'scheduled') scheduled++;
+      if (campaign.send_emails) emailEnabled++;
+    }
+
+    this.summaryStats = { active, scheduled, emailEnabled };
   }
 
 }

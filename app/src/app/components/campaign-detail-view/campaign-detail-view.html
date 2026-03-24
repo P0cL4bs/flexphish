@@ -444,7 +444,7 @@
                             <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
                                 <lucide-icon name="search" size="18"></lucide-icon>
                                 <input type="text" class="grow" placeholder="Search targets..."
-                                    [(ngModel)]="dispatchSearchTerm" />
+                                    [(ngModel)]="dispatchSearchTerm" (ngModelChange)="onDispatchSearchChanged()" />
                             </label>
                         </div>
 
@@ -465,14 +465,14 @@
                                 </thead>
 
                                 <tbody>
-                                    <tr *ngIf="getFilteredCampaignTargets().length === 0">
+                                    <tr *ngIf="filteredCampaignTargets.length === 0">
                                         <td colspan="9" class="text-center text-gray-500 py-4">
                                             {{ dispatchSearchTerm ? 'No matches for this search.' : 'No campaign targets
                                             yet.' }}
                                         </td>
                                     </tr>
 
-                                    <tr *ngFor="let target of getFilteredCampaignTargets()">
+                                    <tr *ngFor="let target of filteredCampaignTargets; trackBy: trackByTargetId">
                                         <td class="font-semibold">
                                             {{ getTargetDisplayName(target) }}
                                         </td>
@@ -550,7 +550,7 @@
                             <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
                                 <lucide-icon name="search" size="18"></lucide-icon>
                                 <input type="text" class="grow" placeholder="Search results and events..."
-                                    [(ngModel)]="eventSearchTerm" />
+                                    [(ngModel)]="eventSearchTerm" (ngModelChange)="onEventSearchChanged()" />
                             </label>
                         </div>
 
@@ -576,14 +576,14 @@
 
                                 <tbody>
 
-                                    <tr *ngIf="getFilteredResults().length === 0">
+                                    <tr *ngIf="filteredResults.length === 0">
                                         <td colspan="11" class="text-center text-gray-500 py-4">
                                             {{ eventSearchTerm ? 'No matches for this search.' : 'No results captured
                                             yet.' }}
                                         </td>
                                     </tr>
 
-                                    <ng-container *ngFor="let r of getFilteredResults(); let i = index">
+                                    <ng-container *ngFor="let r of filteredResults; let i = index; trackBy: trackByResultId">
 
                                         <!-- RESULT ROW -->
                                         <tr class="cursor-pointer transition-colors" (click)="toggleResult(r.id)"
@@ -702,7 +702,7 @@
 
                                                             <tbody>
 
-                                                                <tr *ngFor="let e of getEventsByResult(r.id)">
+                                                                <tr *ngFor="let e of getEventsByResult(r.id); trackBy: trackByEventId">
 
                                                                     <!-- TYPE BADGE -->
                                                                     <td>
@@ -755,7 +755,7 @@
 
                                                                 </tr>
 
-                                                                <tr *ngIf="!r.events || r.events.length === 0">
+                                                                <tr *ngIf="getEventsByResult(r.id).length === 0">
                                                                     <td colspan="6" class="text-center text-gray-400">
                                                                         No events recorded.
                                                                     </td>

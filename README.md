@@ -4,7 +4,7 @@
 
 **Flexphish** is a flexible and modular phishing framework designed for **security professionals, red teams, and researchers** to simulate real-world phishing campaigns in controlled environments. It allows controlled testing of phishing scenarios by creating realistic login pages and capturing interactions for analysis, it provides a modern architecture with support for **custom templates, campaign management, and traffic monitor**, making it ideal for **penetration testing, awareness training, and development of phishing simulations**.
 
-![flexphish dashboard](/docs/dashboard.png)
+![flexphish dashboard](/docs/campagins.png)
 
 ## Features
 

@@ -538,9 +538,98 @@ func (r *CampaignRepository) GetAnalytics(userID int64, period string) (*campaig
 }
 
 func (r *CampaignRepository) DeleteResult(resultID int64, campaignID int64) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		type eventDelta struct {
+			Opened    int64
+			Clicked   int64
+			Submitted int64
+		}
+		var resultEventDelta eventDelta
+		if err := tx.Model(&event.Event{}).
+			Select(`
+				SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) AS opened,
+				SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) AS clicked,
+				SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) AS submitted
+			`, event.EventOpen, event.EventClick, event.EventSubmit).
+			Where("campaign_id = ? AND result_id = ?", campaignID, resultID).
+			Scan(&resultEventDelta).Error; err != nil {
+			return err
+		}
 
-	return r.db.
-		Where("id = ? AND campaign_id = ?", resultID, campaignID).
-		Delete(&result.Result{}).
-		Error
+		type targetDelta struct {
+			OpenedTargets    int64
+			ClickedTargets   int64
+			SubmittedTargets int64
+		}
+		var linkedTargetDelta targetDelta
+		if err := tx.Model(&campaign.CampaignTarget{}).
+			Select(`
+				SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) AS opened_targets,
+				SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) AS clicked_targets,
+				SUM(CASE WHEN submitted_at IS NOT NULL THEN 1 ELSE 0 END) AS submitted_targets
+			`).
+			Where("campaign_id = ? AND result_id = ?", campaignID, resultID).
+			Scan(&linkedTargetDelta).Error; err != nil {
+			return err
+		}
+
+		deleteRes := tx.
+			Where("id = ? AND campaign_id = ?", resultID, campaignID).
+			Delete(&result.Result{})
+		if deleteRes.Error != nil {
+			return deleteRes.Error
+		}
+
+		// Keep campaign_targets consistent when a linked result is removed.
+		if err := tx.Model(&campaign.CampaignTarget{}).
+			Where("campaign_id = ? AND result_id = ?", campaignID, resultID).
+			Updates(map[string]interface{}{
+				"result_id":    nil,
+				"opened_at":    nil,
+				"clicked_at":   nil,
+				"submitted_at": nil,
+				"ip":           "",
+				"user_agent":   "",
+				"updated_at":   time.Now(),
+			}).Error; err != nil {
+			return err
+		}
+
+		return tx.Model(&campaign.Campaign{}).
+			Where("id = ?", campaignID).
+			Updates(map[string]interface{}{
+				"total_opened": gorm.Expr(
+					"CASE WHEN total_opened > ? THEN total_opened - ? ELSE 0 END",
+					linkedTargetDelta.OpenedTargets,
+					linkedTargetDelta.OpenedTargets,
+				),
+				// Current runtime increments clicks on submit events.
+				"total_clicked": gorm.Expr(
+					"CASE WHEN total_clicked > ? THEN total_clicked - ? ELSE 0 END",
+					resultEventDelta.Submitted,
+					resultEventDelta.Submitted,
+				),
+				"total_submitted": gorm.Expr(
+					"CASE WHEN total_submitted > ? THEN total_submitted - ? ELSE 0 END",
+					resultEventDelta.Submitted,
+					resultEventDelta.Submitted,
+				),
+				"unique_opened": gorm.Expr(
+					"CASE WHEN unique_opened > ? THEN unique_opened - ? ELSE 0 END",
+					linkedTargetDelta.OpenedTargets,
+					linkedTargetDelta.OpenedTargets,
+				),
+				"unique_clicked": gorm.Expr(
+					"CASE WHEN unique_clicked > ? THEN unique_clicked - ? ELSE 0 END",
+					linkedTargetDelta.ClickedTargets,
+					linkedTargetDelta.ClickedTargets,
+				),
+				"unique_submitted": gorm.Expr(
+					"CASE WHEN unique_submitted > ? THEN unique_submitted - ? ELSE 0 END",
+					linkedTargetDelta.SubmittedTargets,
+					linkedTargetDelta.SubmittedTargets,
+				),
+				"updated_at": time.Now(),
+			}).Error
+	})
 }
