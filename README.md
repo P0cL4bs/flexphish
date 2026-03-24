@@ -8,10 +8,17 @@
 
 ## Features
 
-- Modular phishing campaign engine
-- Wildcard domain campaign 
-- YAML-based template phishing pages
-- Campaign tracking and credential capture
+- Campaign creation and management from a web dashboard
+- Wildcard subdomain campaigns
+- Realistic phishing templates with multi-step login flows
+- Group and target management for recipient segmentation
+- SMTP profile and email template management
+- Email template editor with open-tracking
+- Bulk campaign email delivery with scheduling support
+- Credential capture and interaction tracking (open, click, submit)
+- Email open tracking via pixel
+- Campaign analytics with delivery and conversion metrics
+- Built-in settings panel for platform configuration
 
 ## Releases & Installation Guide
 
