@@ -125,14 +125,16 @@
                                 </span>
                             </td>
 
-                            <td>
+                            <td class="whitespace-nowrap">
 
                                 <ng-container *ngIf="getTemplateById(c.template_id) as templ; else loading">
-                                    <span
-                                        class="pr-2 mr-2 font-bold badge badge-soft badge-accent">{{c.template_id}}</span>
-                                    <span class="badge badge-outline badge-secondary badge-sm">
-                                        {{ templ.info.category }}
-                                    </span>
+                                    <div class="flex items-center gap-2 min-w-max">
+                                        <span
+                                            class="template-id-badge badge badge-soft badge-accent font-bold">{{c.template_id}}</span>
+                                        <span class="badge badge-outline badge-secondary badge-sm whitespace-nowrap">
+                                            {{ templ.info.category }}
+                                        </span>
+                                    </div>
 
                                 </ng-container>
 
