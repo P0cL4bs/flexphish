@@ -13,6 +13,11 @@ jobs:
           - GOOS: linux
             GOARCH: amd64
             RUNNER: ubuntu-latest
+            CC: gcc
+          - GOOS: windows
+            GOARCH: amd64
+            RUNNER: ubuntu-latest
+            CC: x86_64-w64-mingw32-gcc
 
     runs-on: ${{ matrix.RUNNER }}
     env:
@@ -23,8 +28,8 @@ jobs:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: 📦 Install system dependencies (make + 7zip)
-        run: sudo apt-get update && sudo apt-get install -y p7zip-full build-essential gzip
+      - name: 📦 Install system dependencies (make + zip + mingw)
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full build-essential gzip zip gcc-mingw-w64-x86-64
 
       - name: 🧰 Setup Go
         uses: actions/setup-go@v5
@@ -60,10 +65,25 @@ jobs:
 
       - name: 🔨 Build Go binary
         env:
-          GOOS: ${{ matrix.GOOS }}
-          GOARCH: ${{ matrix.GOARCH }}
+          CC: ${{ matrix.CC }}
         run: |
-          make all
+          make all GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} PLATFORMS=${{ matrix.GOOS }}/${{ matrix.GOARCH }}
+
+      - name: ✅ Validate generated package
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v "${{ matrix.CC }}" >/dev/null
+          ZIP_FILE="$(ls -1 build/*_${{ matrix.GOOS }}_${{ matrix.GOARCH }}*.zip | head -n 1)"
+          if [ -z "${ZIP_FILE:-}" ]; then
+            echo "No zip generated for ${{ matrix.GOOS }}/${{ matrix.GOARCH }}"
+            exit 1
+          fi
+          if [ "${{ matrix.GOOS }}" = "windows" ]; then
+            unzip -l "$ZIP_FILE" | grep -q "flexphish.exe"
+          else
+            unzip -l "$ZIP_FILE" | grep -q "flexphish$"
+          fi
 
       - name: 📤 Upload zip and sha256
         uses: actions/upload-artifact@v4

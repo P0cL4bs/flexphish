@@ -14,9 +14,7 @@ TEMPLATE_DIR := templates
 FRONTEND_DIR := app
 
 GO ?= go
-GOOS := linux
-GOARCH := amd64
-CGO_ENABLED := 1
+CGO_ENABLED ?= 1
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -40,8 +38,21 @@ ifeq ($(HOST_ARCH),armv7l)
     HOST_SUBARCH := 7
 endif
 
-# Usa host detectado como plataforma default
-PLATFORMS ?= $(HOST_OS)/$(HOST_ARCH)$(if $(HOST_SUBARCH),/$(HOST_SUBARCH))
+# Normaliza variantes de Windows no uname
+ifneq (,$(findstring mingw,$(HOST_OS)))
+    HOST_OS := windows
+endif
+ifneq (,$(findstring msys,$(HOST_OS)))
+    HOST_OS := windows
+endif
+ifneq (,$(findstring cygwin,$(HOST_OS)))
+    HOST_OS := windows
+endif
+
+# Default target platform is host unless overridden
+GOOS ?= $(HOST_OS)
+GOARCH ?= $(HOST_ARCH)
+PLATFORMS ?= $(GOOS)/$(GOARCH)$(if $(GOARM),/$(GOARM))
 
 # Colors
 BLUE := \033[34m
@@ -93,12 +104,6 @@ frontend: ## Build Angular frontend and copy to ui/
 	cp -r "$$BUILD_SUBDIR"/browser/* ui/ && \
 	$(SUCCESS) "Frontend built and copied to ui/"
 
-clean: ## Clean build output except .keep files
-	@echo "Cleaning build, ui, and bin folders (except *.keep)..."
-	@find $(BUILD_DIR) $(BIN_DIR) ui -type f ! -name '*.keep' -exec rm -f {} +
-	@find $(BUILD_DIR) $(BIN_DIR) ui -type d -empty -delete
-	$(TRASH) "Clean complete"
-
 build: init ## Build Go binary
 	@echo "[+] Building Go binary..."
 	@rm -rf "$(BIN_DIR)/$(PROJECT_NAME)_*" 
@@ -111,15 +116,20 @@ build: init ## Build Go binary
 		if [ "$$SUBARCH" != "$$ARCH" ] && [ "$$SUBARCH" != "-" ]; then \
 			OUT_NAME="$${OUT_NAME}_$${SUBARCH}"; \
 		fi; \
+		if [ "$$OS" = "windows" ]; then \
+			BIN_FILE="$(PROJECT_NAME).exe"; \
+		else \
+			BIN_FILE="$(PROJECT_NAME)"; \
+		fi; \
 		OUT_PATH="$(BIN_DIR)/$$OUT_NAME"; \
 		echo "[*] Building for $${OS}/$${ARCH}/$${SUBARCH}..."; \
 		mkdir -p "$$OUT_PATH"; \
 		if [ "$$ARCH" = "arm" ] && [ "$$SUBARCH" != "" ]; then \
 			GOOS=$$OS GOARCH=$$ARCH GOARM=$$SUBARCH CGO_ENABLED=$(CGO_ENABLED) \
-			$(GO) build -ldflags="$(LD_FLAGS)" -o "$$OUT_PATH/$(PROJECT_NAME)" $(CMD_MAIN_PATH); \
+			$(GO) build -ldflags="$(LD_FLAGS)" -o "$$OUT_PATH/$$BIN_FILE" $(CMD_MAIN_PATH); \
 		else \
 			GOOS=$$OS GOARCH=$$ARCH CGO_ENABLED=$(CGO_ENABLED) \
-			$(GO) build -ldflags="$(LD_FLAGS)" -o "$$OUT_PATH/$(PROJECT_NAME)" $(CMD_MAIN_PATH); \
+			$(GO) build -ldflags="$(LD_FLAGS)" -o "$$OUT_PATH/$$BIN_FILE" $(CMD_MAIN_PATH); \
 		fi; \
 	done
 	@echo "[✅] Binary builds completed."
@@ -135,7 +145,12 @@ zip: build frontend ## Package everything into zips for existing platforms
 		if [ "$$SUBARCH" != "" ] && [ "$$SUBARCH" != "$$ARCH" ] && [ "$$SUBARCH" != "-" ]; then \
 			OUT_NAME="$${OUT_NAME}_$${SUBARCH}"; \
 		fi; \
-		BIN_PATH="$(BIN_DIR)/$$OUT_NAME/$(PROJECT_NAME)"; \
+		if [ "$$OS" = "windows" ]; then \
+			BIN_FILE="$(PROJECT_NAME).exe"; \
+		else \
+			BIN_FILE="$(PROJECT_NAME)"; \
+		fi; \
+		BIN_PATH="$(BIN_DIR)/$$OUT_NAME/$$BIN_FILE"; \
 		if [ ! -f "$$BIN_PATH" ]; then \
 			$(WARN) "Skipping zip for $$OUT_NAME: binary not found at $$BIN_PATH"; \
 			continue; \

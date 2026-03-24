@@ -34,7 +34,7 @@ https://github.com/P0cL4bs/flexphish/releases
 Pre-built binaries are available for multiple platforms, including:
 
 * Linux (amd64)
-* Windows (amd64) *(future support)*
+* Windows (amd64)
 
 Each release includes compiled binaries and release notes describing changes, improvements, and fixes.
 
