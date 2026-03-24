@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TemplateMetadata } from 'src/app/models/template.model';
@@ -39,9 +39,12 @@ export class TemplatesView implements OnInit {
   filteredTemplates: TemplateMetadata[] = []
   importing = false;
   exporting = false;
+  private importInput: HTMLInputElement | null = null;
 
   @ViewChild(TemplateCreateView)
   createView!: TemplateCreateView;
+  @ViewChild('importHelpDialog')
+  importHelpDialog?: ElementRef<HTMLDialogElement>;
 
   constructor(private api: ApiService, private router: Router,
     private route: ActivatedRoute, private toastr: ToastService) { }
@@ -130,7 +133,17 @@ export class TemplatesView implements OnInit {
   }
 
   openImportTemplate(input: HTMLInputElement) {
-    input.click();
+    this.importInput = input;
+    this.importHelpDialog?.nativeElement.showModal();
+  }
+
+  closeImportHelpModal() {
+    this.importHelpDialog?.nativeElement.close();
+  }
+
+  continueImportTemplate() {
+    this.closeImportHelpModal();
+    this.importInput?.click();
   }
 
   onTemplateZipSelected(event: Event) {
