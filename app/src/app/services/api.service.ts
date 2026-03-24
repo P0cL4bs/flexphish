@@ -280,6 +280,35 @@ export class ApiService {
 
     }
 
+    public importTemplateZip(file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this.http.post(
+            `${this.settings.URL()}/templates/import`,
+            formData,
+            { headers: this.creds.headers }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
+    public exportTemplateZip(filename: string): Observable<Blob> {
+        return this.http.get(
+            `${this.settings.URL()}/templates/${filename}/export`,
+            {
+                headers: this.creds.headers,
+                responseType: 'blob'
+            }
+        ).pipe(
+            catchError((error: HttpErrorResponse) => {
+                return throwError(() => error);
+            })
+        );
+    }
+
     public getTemplateHtmlFiles(template_id: string): Observable<TemplateHtmlFile[]> {
 
         return this.http.get<TemplateHtmlFile[]>(

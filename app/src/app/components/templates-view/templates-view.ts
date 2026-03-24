@@ -37,6 +37,8 @@ export class TemplatesView implements OnInit {
   sortBy: 'name' | 'category' = 'name'
 
   filteredTemplates: TemplateMetadata[] = []
+  importing = false;
+  exporting = false;
 
   @ViewChild(TemplateCreateView)
   createView!: TemplateCreateView;
@@ -125,6 +127,68 @@ export class TemplatesView implements OnInit {
 
     this.createView.openModal();
 
+  }
+
+  openImportTemplate(input: HTMLInputElement) {
+    input.click();
+  }
+
+  onTemplateZipSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      this.toastr.show('Please select a .zip file', 'warning');
+      input.value = '';
+      return;
+    }
+
+    this.importing = true;
+    this.api.importTemplateZip(file).subscribe({
+      next: () => {
+        this.importing = false;
+        input.value = '';
+        this.toastr.show('Template imported successfully', 'success');
+        this.loadTemplates();
+      },
+      error: (err) => {
+        this.importing = false;
+        input.value = '';
+        const message = err?.error?.error || 'Failed to import template zip';
+        this.toastr.show(message, 'error');
+      }
+    });
+  }
+
+  exportActiveTemplate() {
+    const filename = this.activeTemplate;
+    if (!filename) {
+      this.toastr.show('Select a template to export', 'warning');
+      return;
+    }
+
+    this.exporting = true;
+    this.api.exportTemplateZip(filename).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename.replace(/\.yaml$/i, '') + '.zip';
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+
+        this.exporting = false;
+        this.toastr.show('Template exported', 'success');
+      },
+      error: (err) => {
+        this.exporting = false;
+        const message = err?.error?.error || 'Failed to export template';
+        this.toastr.show(message, 'error');
+      }
+    });
   }
 
   selectTemplate(template: TemplateMetadata): void {
