@@ -61,6 +61,7 @@ export class CampaignView implements OnInit {
 
   search = '';
   statusFilter = '';
+  deliveryFilter = '';
 
   expandedRow: number | null = null;
   campaignDetails: { [id: number]: CampaignDetail } = {};
@@ -254,6 +255,7 @@ export class CampaignView implements OnInit {
       next: (response) => {
         this.campaigns = response.data;
         this.total = response.total;
+        this.preloadCampaignDetails(this.campaigns);
         this.applyFilters();
         this.loading = false;
       },
@@ -400,21 +402,33 @@ export class CampaignView implements OnInit {
   applyFilters(): void {
     this.filteredCampaigns = this.campaigns.filter(c => {
       const matchesSearch =
-        c.name.toLowerCase().includes(this.search.toLowerCase());
+        c.name.toLowerCase().includes(this.search.toLowerCase()) ||
+        c.subdomain.toLowerCase().includes(this.search.toLowerCase()) ||
+        c.template_id.toLowerCase().includes(this.search.toLowerCase());
 
       const matchesStatus =
         this.statusFilter ? c.status === this.statusFilter : true;
 
-      return matchesSearch && matchesStatus;
+      const matchesDelivery =
+        this.deliveryFilter ? this.getEmailDeliveryLabel(c) === this.deliveryFilter : true;
+
+      return matchesSearch && matchesStatus && matchesDelivery;
     });
-    this.campaigns.forEach(c => {
+  }
 
-      this.api.getCampaignById(c.id).subscribe(detail => {
+  private preloadCampaignDetails(campaigns: Campaign[]): void {
+    campaigns.forEach(campaign => {
+      if (this.campaignDetails[campaign.id]) {
+        return;
+      }
 
-        this.campaignDetails[c.id] = detail;
-
+      this.api.getCampaignById(campaign.id).subscribe({
+        next: (detail) => {
+          this.campaignDetails[campaign.id] = detail;
+        },
+        error: () => {
+        }
       });
-
     });
   }
 
@@ -595,6 +609,71 @@ export class CampaignView implements OnInit {
       default:
         return 'badge-ghost';
     }
+  }
+
+  getStatusBadgeClass(status: string): string {
+    switch (status) {
+      case 'active':
+        return 'badge-success';
+      case 'draft':
+        return 'badge-ghost';
+      case 'scheduled':
+        return 'badge-warning';
+      case 'stopped':
+        return 'badge-ghost';
+      case 'completed':
+        return 'badge-ghost';
+      default:
+        return 'badge-ghost';
+    }
+  }
+
+  getStatusDotClass(status: string): string {
+    switch (status) {
+      case 'active':
+        return 'status-success';
+      case 'draft':
+        return 'status-ghost';
+      case 'scheduled':
+        return 'status-accent';
+      case 'stopped':
+        return 'status-warning';
+      case 'completed':
+        return 'status-info';
+      default:
+        return 'status-ghost';
+    }
+  }
+
+  getCampaignGroupsCount(campaign: Campaign): number {
+    const detail = this.campaignDetails[campaign.id];
+    return detail?.groups?.length || campaign.groups?.length || 0;
+  }
+
+  getCampaignTargetsCount(campaign: Campaign): number {
+    const detail = this.campaignDetails[campaign.id];
+    return detail?.campaign_targets?.length || campaign.campaign_targets?.length || 0;
+  }
+
+  getCampaignUrl(campaign: { subdomain: string }): string {
+    return `http://${campaign.subdomain}.${this.config.campaign.base_domain}?test_mode_token=${this.config.security.test_mode_token}`;
+  }
+
+  getCampaignTemplateCategory(campaign: Campaign): string {
+    const template = this.getTemplateById(campaign.template_id);
+    return template?.info?.category?.trim() || 'Uncategorized';
+  }
+
+  getActiveCampaignsCount(): number {
+    return this.campaigns.filter(c => c.status === 'active').length;
+  }
+
+  getScheduledCampaignsCount(): number {
+    return this.campaigns.filter(c => c.status === 'scheduled').length;
+  }
+
+  getEmailEnabledCampaignsCount(): number {
+    return this.campaigns.filter(c => c.send_emails).length;
   }
 
 }

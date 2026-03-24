@@ -1,19 +1,52 @@
 <div class="">
 
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Campaigns</h1>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold">Campaigns</h1>
+            <p class="text-sm opacity-70 mt-1">Monitor status, delivery and conversion in one place.</p>
+        </div>
+        <button class="btn btn-primary" (click)="openCreateDialog()">
+            + New Campaign
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Total</div>
+                <div class="stat-value text-3xl">{{ total }}</div>
+            </div>
+        </div>
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Active</div>
+                <div class="stat-value text-3xl">{{ getActiveCampaignsCount() }}</div>
+            </div>
+        </div>
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Scheduled</div>
+                <div class="stat-value text-3xl">{{ getScheduledCampaignsCount() }}</div>
+            </div>
+        </div>
+        <div class="stats shadow border border-base-300 bg-base-100">
+            <div class="stat py-4">
+                <div class="stat-title">Email Enabled</div>
+                <div class="stat-value text-3xl">{{ getEmailEnabledCampaignsCount() }}</div>
+            </div>
+        </div>
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col md:flex-row gap-4 mb-6">
+    <div class="flex flex-col lg:flex-row gap-3 mb-6">
 
-        <label class="input input-bordered flex items-center gap-2 w-full max-w-sm">
+        <label class="input input-bordered flex items-center gap-2 w-full lg:max-w-sm">
             <lucide-icon name="search" size="18"></lucide-icon>
-            <input type="text" class="grow" placeholder="Search by name..." [(ngModel)]="search"
+            <input type="text" class="grow" placeholder="Search by name, subdomain or template..." [(ngModel)]="search"
                 (input)="applyFilters()" />
         </label>
 
-        <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="select select-bordered w-full md:w-52">
+        <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="select select-bordered w-full lg:w-52">
 
             <option value="">All Status</option>
             <option value="draft">Draft</option>
@@ -23,9 +56,15 @@
             <option value="completed">Completed</option>
         </select>
 
-        <button class="btn btn-primary" (click)="openCreateDialog()">
-            + New Campaign
-        </button>
+        <select [(ngModel)]="deliveryFilter" (change)="applyFilters()" class="select select-bordered w-full lg:w-52">
+            <option value="">All Delivery</option>
+            <option value="Disabled">Disabled</option>
+            <option value="Pending">Pending</option>
+            <option value="Queued">Queued</option>
+            <option value="In progress">In progress</option>
+            <option value="Complete">Complete</option>
+            <option value="Failed">Failed</option>
+        </select>
 
     </div>
 
@@ -47,17 +86,22 @@
                 <thead>
                     <tr class="border-b-0">
                         <th class="bg-base-300 rounded-s-box lg:py-2 w-12"></th>
-                        <th class="bg-base-300 lg:py-2">Name</th>
-                        <th class="bg-base-300 lg:py-2 whitespace-nowrap">Subdomain</th>
-                        <th class="bg-base-300 lg:py-2">Status</th>
-                        <th class="bg-base-300 lg:py-2">Delivery Status</th>
-                        <th class="bg-base-300 lg:py-2">Template</th>
-                        <th class="bg-base-300 lg:py-2">Template Tags</th>
-                        <th class="bg-base-300 lg:py-2">Launched At</th>
-                        <th class="bg-base-300 lg:py-2">T. Creds</th>
-                        <th class="bg-base-300 lg:py-2">T. Opens</th>
-                        <th class="bg-base-300 lg:py-2">T. Events</th>
-                        <th class="bg-base-300 rounded-e-box lg:py-2">Last captured</th>
+                        <th class="bg-base-300 lg:py-2 min-w-[240px]">Campaign</th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="activity" size="14"></lucide-icon>Status</span></th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="mailbox" size="14"></lucide-icon>Delivery</span></th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="users" size="14"></lucide-icon>Reach</span></th>
+                        <th class="bg-base-300 lg:py-2 min-w-[220px]"><span
+                                class="inline-flex items-center gap-1"><lucide-icon name="chart-no-axes-combined"
+                                    size="14"></lucide-icon>Performance</span></th>
+                        <th class="bg-base-300 lg:py-2"><span class="inline-flex items-center gap-1"><lucide-icon
+                                    name="layout-template" size="14"></lucide-icon>Template</span></th>
+                        <th class="bg-base-300 lg:py-2 min-w-[160px]"><span
+                                class="inline-flex items-center gap-1"><lucide-icon name="calendar-clock"
+                                    size="14"></lucide-icon>Updated</span></th>
+                        <th class="bg-base-300 rounded-e-box lg:py-2 text-right">Actions</th>
                     </tr>
                 </thead>
 
@@ -80,118 +124,117 @@
 
                             </td>
 
-                            <td class="font-semibold">
-                                {{ c.name }}
-                            </td>
-
-                            <td class="whitespace-nowrap">
-                                <a class="inline-flex items-center gap-1 font-bold hover:underline" target="_blank"
-                                    (click)="$event.stopPropagation()"
-                                    [href]="'http://' + c.subdomain + '.' + config.campaign.base_domain + '?test_mode_token=' + config.security.test_mode_token">
-                                    <span class="badge badge-soft badge-secondary badge-sm">
-                                        {{ c.subdomain }}
-                                    </span>
-                                    <span class="opacity-70">
-                                        .{{ config.campaign.base_domain }}
-                                    </span>
-                                </a>
-                            </td>
-
                             <td>
-
-                                <span class="badge badge-soft font-bold" [ngClass]="{
-                                    'badge-success': c.status === 'active',
-                                    'badge-ghost': c.status === 'draft',
-                                    'badge-accent': c.status === 'scheduled',
-                                    'badge-warning': c.status === 'stopped',
-                                    'badge-info': c.status === 'completed'
-                                }">
-                                    <div aria-label="status" class="status" [ngClass]="{
-                                    'status-success': c.status === 'active',
-                                    'status-ghost': c.status === 'draft',
-                                    'status-accent': c.status === 'scheduled',
-                                    'status-warning': c.status === 'stopped',
-                                    'status-info': c.status === 'completed'
-                                }"></div>
-                                    {{ c.status }}
-
-                                </span>
-
-                            </td>
-
-                            <td>
-                                <span class="badge badge-soft font-bold" [ngClass]="getEmailDeliveryBadgeClass(c)">
-                                    {{ getEmailDeliveryLabel(c) }}
-                                </span>
-                            </td>
-
-                            <td class="whitespace-nowrap">
-
-                                <ng-container *ngIf="getTemplateById(c.template_id) as templ; else loading">
-                                    <div class="flex items-center gap-2 min-w-max">
-                                        <span
-                                            class="template-id-badge badge badge-soft badge-accent font-bold">{{c.template_id}}</span>
-                                        <span class="badge badge-outline badge-secondary badge-sm whitespace-nowrap">
-                                            {{ templ.info.category }}
+                                <div class="flex flex-col gap-2">
+                                    <span class="font-semibold leading-tight">{{ c.name }}</span>
+                                    <a class="inline-flex items-center gap-1 font-bold hover:underline w-fit"
+                                        target="_blank" (click)="$event.stopPropagation()" [href]="getCampaignUrl(c)">
+                                        <span class="badge badge-soft badge-secondary badge-sm">
+                                            {{ c.subdomain }}
                                         </span>
+                                        <span class="opacity-70">
+                                            .{{ config.campaign.base_domain }}
+                                        </span>
+                                    </a>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="badge badge-soft font-bold" [ngClass]="getStatusBadgeClass(c.status)">
+                                    <div aria-label="status" class="status" [ngClass]="getStatusDotClass(c.status)">
                                     </div>
-
-                                </ng-container>
-
-                                <ng-template #loading>
-                                    <span class="opacity-40 text-xs">
-                                        loading...
-                                    </span>
-                                </ng-template>
-
-                            </td>
-
-                            <td>
-
-                                <ng-container *ngIf="getTemplateById(c.template_id) as templ">
-
-                                    <span *ngFor="let tag of templ.info.tags || []"
-                                        class="mr-1 badge badge-sm badge-outline badge-primary">
-
-                                        {{ tag }}
-
-                                    </span>
-
-                                </ng-container>
-
-                            </td>
-
-                            <td>
-                                {{ c.launch_date | date:'dd/MM/yyyy HH:mm' }}
-                            </td>
-
-                            <td>
-                                <span class="font-bold text-primary">{{ getTotalResults(c) }}</span>
-                            </td>
-
-                            <td>
-                                <span class="font-bold text-info">{{ getTotalOpened(c) }}</span>
-                            </td>
-
-                            <td>
-                                <span class="font-bold text-accent">{{ c.total_submitted }}</span>
-                            </td>
-
-                            <td>
-                                <span *ngIf="getLastCapture(c) as last; else noCapture">
-                                    {{ last | date:'dd/MM/yyyy HH:mm' }}
+                                    {{ c.status }}
                                 </span>
+                            </td>
 
-                                <ng-template #noCapture>
-                                    <span class="opacity-40">—</span>
-                                </ng-template>
+                            <td>
+                                <div class="flex flex-col gap-1">
+                                    <span class="badge badge-soft font-bold w-fit"
+                                        [ngClass]="getEmailDeliveryBadgeClass(c)">
+                                        {{ getEmailDeliveryLabel(c) }}
+                                    </span>
+                                    <span class="text-xs opacity-70" *ngIf="c.send_emails">Email mode enabled</span>
+                                    <span class="text-xs opacity-60" *ngIf="!c.send_emails">No SMTP/template
+                                        linked</span>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="badge badge-soft gap-1">
+                                        <lucide-icon name="users" size="12"></lucide-icon>
+                                        Groups: {{ getCampaignGroupsCount(c) }}
+                                    </span>
+                                    <span class="badge badge-soft gap-1">
+                                        <lucide-icon name="crosshair" size="12"></lucide-icon>
+                                        Targets: {{ getCampaignTargetsCount(c) }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="space-y-2 min-w-[220px]">
+                                    <div class="grid grid-cols-3 gap-1 text-xs">
+                                        <div class="tooltip tooltip-top" data-tip="Total email opens">
+                                            <span class="badge badge-soft badge-primary gap-1">
+                                                <lucide-icon name="mailbox" size="12"></lucide-icon>
+                                                {{ c.total_opened }}
+                                            </span>
+                                        </div>
+                                        <div class="tooltip tooltip-top" data-tip="Total link clicks">
+                                            <span class="badge badge-soft badge-accent gap-1">
+                                                <lucide-icon name="mouse-pointer-click" size="12"></lucide-icon>
+                                                {{ c.total_clicked }}
+                                            </span>
+                                        </div>
+                                        <div class="tooltip tooltip-top" data-tip="Total captured credentials">
+                                            <span class="badge badge-soft badge-secondary gap-1">
+                                                <lucide-icon name="key-round" size="12"></lucide-icon>
+                                                {{ c.total_submitted }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-xs opacity-70 mb-1 tooltip tooltip-top"
+                                            data-tip="Conversion = credentials submitted / clicks">
+                                            <span>Conversion</span>
+                                            <span class="text-success">{{ getConversionRate(c) }}%</span>
+                                        </div>
+                                        <progress class="progress progress-success w-full" [value]="getConversionRate(c)"
+                                            max="100"></progress>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="whitespace-nowrap">
+                                <div class="flex flex-col gap-1">
+                                    <span class="template-id-badge badge badge-soft badge-accent font-bold">{{
+                                        c.template_id }}</span>
+                                    <span class="badge badge-outline badge-secondary badge-sm w-fit">{{
+                                        getCampaignTemplateCategory(c) }}</span>
+                                </div>
+                            </td>
+
+                            <td class="text-sm">
+                                <div class="flex flex-col gap-1">
+                                    <span>{{ c.updated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                                    <span class="text-xs opacity-70">Launch: {{ c.launch_date | date:'dd/MM/yyyy HH:mm'
+                                        }}</span>
+                                </div>
+                            </td>
+
+                            <td class="text-right">
+                                <button class="btn btn-sm btn-soft" [routerLink]="['/campaigns', c.id]"
+                                    (click)="$event.stopPropagation()">
+                                    Open
+                                </button>
                             </td>
 
                         </tr>
 
                         <!-- EXPANDED DETAILS -->
                         <tr *ngIf="expandedRow === c.id" class="mb-2 ">
-                            <td colspan="13" class="bg-base-200 p-6 w-full"> <!-- LOADING DETAILS -->
+                            <td colspan="9" class="bg-base-200 p-6 w-full"> <!-- LOADING DETAILS -->
                                 <div *ngIf="loadingDetail === c.id" class="text-center py-6"> <span
                                         class="loading loading-spinner loading-lg"></span> </div>
                                 <!-- DETAILS CONTENT -->
