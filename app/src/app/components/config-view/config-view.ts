@@ -60,6 +60,17 @@ export class ConfigView implements OnInit {
       next: (data) => {
 
         this.config = data
+        if (!this.config.campaign) {
+          this.config.campaign = {
+            base_domain: '',
+            url_scheme: 'https',
+            subdomain_mode: true
+          }
+        }
+        if (!this.config.campaign.url_scheme) {
+          const baseDomain = (this.config.campaign.base_domain || '').toLowerCase()
+          this.config.campaign.url_scheme = baseDomain.includes('localhost') ? 'http' : 'https'
+        }
         if (!this.config.email_scheduler) {
           this.config.email_scheduler = {
             enabled: true,

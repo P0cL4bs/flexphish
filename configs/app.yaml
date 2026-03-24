@@ -1,5 +1,6 @@
 campaign:
     base_domain: localhost:8001
+    url_scheme: http
     subdomain_mode: true
 email_scheduler:
     enabled: true

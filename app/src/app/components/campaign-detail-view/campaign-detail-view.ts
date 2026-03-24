@@ -593,7 +593,8 @@ export class CampaignDetailView {
   }
 
   getUrl(): string {
-    return `http://${this.campaign?.subdomain}.${this.config.campaign.base_domain}?test_mode_token=${this.config.security.test_mode_token}`;
+    const scheme = (this.config?.campaign?.url_scheme || 'https').toLowerCase();
+    return `${scheme}://${this.campaign?.subdomain}.${this.config.campaign.base_domain}?test_mode_token=${this.config.security.test_mode_token}`;
   }
   getEventBadge(type: string): string {
     switch (type) {

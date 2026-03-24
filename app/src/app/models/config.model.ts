@@ -16,6 +16,7 @@ export interface Config {
 
     campaign: {
         base_domain: string
+        url_scheme: 'http' | 'https' | string
         subdomain_mode: boolean
     }
 

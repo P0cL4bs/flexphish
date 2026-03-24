@@ -65,6 +65,7 @@ type SessionConfig struct {
 
 type CampaignConfig struct {
 	BaseDomain    string `yaml:"base_domain" json:"base_domain"`
+	URLScheme     string `yaml:"url_scheme" json:"url_scheme"`
 	SubdomainMode bool   `yaml:"subdomain_mode" json:"subdomain_mode"`
 }
 

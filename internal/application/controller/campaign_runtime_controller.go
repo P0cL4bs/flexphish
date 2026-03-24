@@ -48,14 +48,19 @@ func (c *CampaignRuntimeController) handleRequest(w http.ResponseWriter, r *http
 		return
 	}
 
-	camp, err := c.campaignRepo.FindActiveBySubdomain(subdomain)
-	if err != nil {
-		http.NotFound(w, r)
+	if r.URL.Path == "/o.gif" {
+		camp, err := c.campaignRepo.FindBySubdomain(subdomain)
+		if err == nil && camp != nil {
+			c.handleOpenTrackingPixel(w, r, camp)
+			return
+		}
+		c.writeTrackingPixel(w)
 		return
 	}
 
-	if r.URL.Path == "/o.gif" {
-		c.handleOpenTrackingPixel(w, r, camp)
+	camp, err := c.campaignRepo.FindActiveBySubdomain(subdomain)
+	if err != nil {
+		http.NotFound(w, r)
 		return
 	}
 
@@ -69,6 +74,11 @@ func (c *CampaignRuntimeController) handleRequest(w http.ResponseWriter, r *http
 }
 
 func (c *CampaignRuntimeController) handleOpenTrackingPixel(w http.ResponseWriter, r *http.Request, camp *campaign.Campaign) {
+	if camp != nil && !camp.TrackOpens {
+		c.writeTrackingPixel(w)
+		return
+	}
+
 	token := strings.TrimSpace(r.URL.Query().Get("s"))
 	if token != "" {
 		campaignTarget, err := c.campaignRepo.GetCampaignTargetByToken(camp.Id, token)
@@ -98,6 +108,10 @@ func (c *CampaignRuntimeController) handleOpenTrackingPixel(w http.ResponseWrite
 		}
 	}
 
+	c.writeTrackingPixel(w)
+}
+
+func (c *CampaignRuntimeController) writeTrackingPixel(w http.ResponseWriter) {
 	// 1x1 transparent GIF
 	pixel := []byte{
 		0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,

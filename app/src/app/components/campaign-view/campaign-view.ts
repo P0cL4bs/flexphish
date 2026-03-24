@@ -668,11 +668,24 @@ export class CampaignView implements OnInit {
 
   getCampaignTargetsCount(campaign: Campaign): number {
     const detail = this.campaignDetails[campaign.id];
-    return detail?.campaign_targets?.length || campaign.campaign_targets?.length || 0;
+    const dispatchTotal = detail?.email_dispatch_total_targets ?? campaign.email_dispatch_total_targets ?? 0;
+    if (dispatchTotal > 0) return dispatchTotal;
+
+    const detailTargets = detail?.campaign_targets?.length || 0;
+    if (detailTargets > 0) return detailTargets;
+
+    const detailExpected = this.getExpectedTargetsFromGroups(detail?.groups);
+    if (detailExpected > 0) return detailExpected;
+
+    const campaignTargets = campaign.campaign_targets?.length || 0;
+    if (campaignTargets > 0) return campaignTargets;
+
+    return this.getExpectedTargetsFromGroups(campaign.groups);
   }
 
   getCampaignUrl(campaign: { subdomain: string }): string {
-    return `http://${campaign.subdomain}.${this.config.campaign.base_domain}?test_mode_token=${this.config.security.test_mode_token}`;
+    const scheme = (this.config?.campaign?.url_scheme || 'https').toLowerCase();
+    return `${scheme}://${campaign.subdomain}.${this.config.campaign.base_domain}?test_mode_token=${this.config.security.test_mode_token}`;
   }
 
   getCampaignTemplateCategory(campaign: Campaign): string {
@@ -707,6 +720,20 @@ export class CampaignView implements OnInit {
     }
 
     this.summaryStats = { active, scheduled, emailEnabled };
+  }
+
+  private getExpectedTargetsFromGroups(groups?: Group[]): number {
+    if (!groups?.length) return 0;
+
+    const uniqueEmails = new Set<string>();
+    for (const group of groups) {
+      for (const target of group.targets || []) {
+        const email = (target.email || '').trim().toLowerCase();
+        if (email) uniqueEmails.add(email);
+      }
+    }
+
+    return uniqueEmails.size;
   }
 
 }

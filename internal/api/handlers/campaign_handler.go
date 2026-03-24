@@ -934,8 +934,33 @@ func (h *CampaignHandler) collectCampaignTargets(groups []group.Group) ([]target
 }
 
 func (h *CampaignHandler) buildCampaignURL(subdomain string) string {
-	baseDomain := config.GetString("campaign.base_domain")
-	return fmt.Sprintf("http://%s.%s", subdomain, baseDomain)
+	baseDomain := strings.TrimSpace(config.GetString("campaign.base_domain"))
+	if baseDomain == "" {
+		return ""
+	}
+
+	configuredScheme := strings.ToLower(strings.TrimSpace(config.GetString("campaign.url_scheme")))
+	if strings.HasPrefix(baseDomain, "https://") {
+		baseDomain = strings.TrimPrefix(baseDomain, "https://")
+		if configuredScheme == "" {
+			configuredScheme = "https"
+		}
+	} else if strings.HasPrefix(baseDomain, "http://") {
+		baseDomain = strings.TrimPrefix(baseDomain, "http://")
+		if configuredScheme == "" {
+			configuredScheme = "http"
+		}
+	}
+
+	if configuredScheme == "" {
+		if strings.Contains(baseDomain, "localhost") || strings.HasPrefix(baseDomain, "127.0.0.1") || strings.HasPrefix(baseDomain, "0.0.0.0") {
+			configuredScheme = "http"
+		} else {
+			configuredScheme = "https"
+		}
+	}
+
+	return fmt.Sprintf("%s://%s.%s", configuredScheme, subdomain, baseDomain)
 }
 
 func generateCampaignToken() (string, error) {

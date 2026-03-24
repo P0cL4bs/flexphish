@@ -88,6 +88,14 @@
                 </label>
                 <input class="input input-bordered w-full mb-3" [(ngModel)]="config.campaign.base_domain">
 
+                <label class="label">
+                    <span class="label-text">URL Scheme</span>
+                </label>
+                <select class="select select-bordered w-full mb-3" [(ngModel)]="config.campaign.url_scheme">
+                    <option value="https">https</option>
+                    <option value="http">http</option>
+                </select>
+
                 <label class="label cursor-pointer justify-between">
                     <span class="label-text">Enable Subdomain Mode</span>
                     <input type="checkbox" class="toggle toggle-secondary" [(ngModel)]="
