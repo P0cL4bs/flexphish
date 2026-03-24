@@ -80,12 +80,18 @@
                         (change)="onTemplateZipSelected($event)" />
                     <button class="btn btn-soft btn-secondary" [disabled]="importing"
                         (click)="openImportTemplate(templateZipInput)">
-                        <span *ngIf="!importing">Import .zip</span>
+                        <span *ngIf="!importing" class="inline-flex items-center gap-2">
+                            <lucide-icon name="file-up" size="16"></lucide-icon>
+                            Import
+                        </span>
                         <span *ngIf="importing" class="loading loading-spinner loading-sm"></span>
                     </button>
                     <button class="btn btn-soft btn-secondary" [disabled]="exporting || !activeTemplate"
                         (click)="exportActiveTemplate()">
-                        <span *ngIf="!exporting">Export .zip</span>
+                        <span *ngIf="!exporting" class="inline-flex items-center gap-2">
+                            <lucide-icon name="file-down" size="16"></lucide-icon>
+                            Export
+                        </span>
                         <span *ngIf="exporting" class="loading loading-spinner loading-sm"></span>
                     </button>
                 </div>
