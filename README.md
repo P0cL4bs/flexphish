@@ -39,13 +39,13 @@ Follow the steps below to quickly get Flexphish running on Linux.
 ### Download the Binary
 
 ```bash
-wget https://github.com/P0cL4bs/flexphish/releases/download/v1.2.1/flexphish_linux_amd64_18e0104.zip
+wget https://github.com/P0cL4bs/flexphish/releases/download/flexphish_vx.x.x_linux_amd64.zip 
 ```
 
 ### Extract the Archive
 
 ```bash
-unzip flexphish_linux_amd64_18e0104.zip
+unzip flexphish_vx.x.x_linux_amd64.zip 
 cd flexphish
 ```
 
@@ -110,7 +110,7 @@ After starting the server, you can access:
 
 ### Development Build
 
-If you prefer to build Flexphish from source:
+If you prefer to build Flexphish from source: 
 
 ### Requirements
 
