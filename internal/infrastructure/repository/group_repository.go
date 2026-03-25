@@ -43,7 +43,18 @@ func (r *GroupRepository) Update(g *group.Group) error {
 }
 
 func (r *GroupRepository) Delete(id int64) error {
-	return r.db.Delete(&group.Group{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var g group.Group
+		if err := tx.Preload("Targets").First(&g, id).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Select("Targets").Delete(&g).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *GroupRepository) GetByID(id int64) (*group.Group, error) {
