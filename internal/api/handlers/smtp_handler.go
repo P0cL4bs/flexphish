@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"flexphish/internal/domain/smtp"
 	"fmt"
 	"net"
@@ -267,18 +268,25 @@ func sendSMTPTestMessage(host string, port int, username string, password string
 
 func sendSMTPMessage(host string, port int, username string, password string, from string, to []string, msg []byte) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
-	auth := netsmtp.PlainAuth("", username, password, host)
+	const (
+		connectTimeout = 10 * time.Second
+		sessionTimeout = 45 * time.Second
+	)
 
 	if port == 465 {
 		tlsConfig := &tls.Config{
 			ServerName: host,
 		}
+		dialer := &net.Dialer{Timeout: connectTimeout}
 
-		conn, err := tls.Dial("tcp", addr, tlsConfig)
+		conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
 		if err != nil {
 			return err
 		}
 		defer conn.Close()
+		if err := conn.SetDeadline(time.Now().Add(sessionTimeout)); err != nil {
+			return err
+		}
 
 		client, err := netsmtp.NewClient(conn, host)
 		if err != nil {
@@ -286,45 +294,27 @@ func sendSMTPMessage(host string, port int, username string, password string, fr
 		}
 		defer client.Quit()
 
-		if ok, _ := client.Extension("AUTH"); ok {
+		auth, err := pickSMTPAuth(client, host, username, password)
+		if err != nil {
+			return err
+		}
+		if auth != nil {
 			if err := client.Auth(auth); err != nil {
 				return err
 			}
 		}
 
-		if err := client.Mail(from); err != nil {
-			return err
-		}
-		for _, recipient := range to {
-			if err := client.Rcpt(recipient); err != nil {
-				return err
-			}
-		}
-
-		writer, err := client.Data()
-		if err != nil {
-			return err
-		}
-		if _, err := writer.Write(msg); err != nil {
-			return err
-		}
-		if err := writer.Close(); err != nil {
-			return err
-		}
-
-		return nil
+		return writeSMTPMessage(client, from, to, msg)
 	}
 
-	if err := netsmtp.SendMail(addr, auth, from, to, msg); err == nil {
-		return nil
-	}
-
-	// Fallback for servers that require STARTTLS handshake explicitly.
-	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	conn, err := net.DialTimeout("tcp", addr, connectTimeout)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
+	if err := conn.SetDeadline(time.Now().Add(sessionTimeout)); err != nil {
+		return err
+	}
 
 	client, err := netsmtp.NewClient(conn, host)
 	if err != nil {
@@ -332,18 +322,29 @@ func sendSMTPMessage(host string, port int, username string, password string, fr
 	}
 	defer client.Quit()
 
+	// Upgrade to TLS before authentication when the server supports STARTTLS.
 	if ok, _ := client.Extension("STARTTLS"); ok {
 		if err := client.StartTLS(&tls.Config{ServerName: host}); err != nil {
 			return err
 		}
+	} else if username != "" && !isLocalSMTPHost(host) {
+		return errors.New("server does not support STARTTLS for authenticated SMTP submission")
 	}
 
-	if ok, _ := client.Extension("AUTH"); ok {
+	auth, err := pickSMTPAuth(client, host, username, password)
+	if err != nil {
+		return err
+	}
+	if auth != nil {
 		if err := client.Auth(auth); err != nil {
 			return err
 		}
 	}
 
+	return writeSMTPMessage(client, from, to, msg)
+}
+
+func writeSMTPMessage(client *netsmtp.Client, from string, to []string, msg []byte) error {
 	if err := client.Mail(from); err != nil {
 		return err
 	}
@@ -365,4 +366,65 @@ func sendSMTPMessage(host string, port int, username string, password string, fr
 	}
 
 	return nil
+}
+
+func pickSMTPAuth(client *netsmtp.Client, host string, username string, password string) (netsmtp.Auth, error) {
+	ok, authExt := client.Extension("AUTH")
+	if !ok {
+		return nil, nil
+	}
+
+	authExt = strings.ToUpper(authExt)
+	switch {
+	case strings.Contains(authExt, "LOGIN"):
+		return &loginAuth{username: username, password: password}, nil
+	case strings.Contains(authExt, "PLAIN"):
+		return netsmtp.PlainAuth("", username, password, host), nil
+	case strings.Contains(authExt, "CRAM-MD5"):
+		return netsmtp.CRAMMD5Auth(username, password), nil
+	default:
+		return nil, fmt.Errorf("unsupported auth mechanisms advertised by server: %s", authExt)
+	}
+}
+
+type loginAuth struct {
+	username string
+	password string
+	step     int
+}
+
+func (a *loginAuth) Start(server *netsmtp.ServerInfo) (string, []byte, error) {
+	if !server.TLS {
+		return "", nil, errors.New("refusing LOGIN auth over non-TLS connection")
+	}
+
+	a.step = 0
+	return "LOGIN", nil, nil
+}
+
+func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if !more {
+		return nil, nil
+	}
+
+	switch a.step {
+	case 0:
+		a.step = 1
+		return []byte(a.username), nil
+	case 1:
+		a.step = 2
+		return []byte(a.password), nil
+	default:
+		return nil, fmt.Errorf("unexpected LOGIN challenge: %q", string(fromServer))
+	}
+}
+
+func isLocalSMTPHost(host string) bool {
+	normalized := strings.Trim(host, "[]")
+	if normalized == "localhost" {
+		return true
+	}
+
+	ip := net.ParseIP(normalized)
+	return ip != nil && ip.IsLoopback()
 }
