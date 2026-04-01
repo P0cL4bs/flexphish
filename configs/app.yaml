@@ -1,17 +1,17 @@
 campaign:
     base_domain: localhost:8001
-    url_scheme: http
     subdomain_mode: true
+    url_scheme: http
 email_scheduler:
-    enabled: true
-    poll_interval_seconds: 15
-    emails_per_minute: 60
-    batch_size: 25
     batch_pause_ms: 1000
+    batch_size: 25
+    emails_per_minute: 60
+    enabled: true
     max_parallel_campaigns: 3
+    poll_interval_seconds: 15
 security:
-    jwt_secret: ""
-    test_mode_token: ""
+    jwt_secret: e8d223c31c9193f3ca9cb1601a0c7084e451d5808333570543b676180619a71c
+    test_mode_token: 3b9162f0-cd66-4e70-82f6-d7b47fcafb57
 server:
     api_port: 8088
     campaign_port: 8001
