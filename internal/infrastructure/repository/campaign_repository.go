@@ -276,6 +276,7 @@ func (r *CampaignRepository) MarkCampaignTargetSubmitted(campaignTargetID int64,
 
 func (r *CampaignRepository) Delete(id int64, userId int64) error {
 	return r.db.
+		Unscoped().
 		Where("id = ? AND user_id = ?", id, userId).
 		Delete(&campaign.Campaign{}).Error
 }
