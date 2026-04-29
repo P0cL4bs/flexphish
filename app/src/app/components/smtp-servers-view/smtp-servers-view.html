@@ -85,7 +85,7 @@
   <div class="modal-box max-w-3xl">
     <h3 class="font-bold text-lg mb-4">Create SMTP Server</h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="label"><span class="label-text">Name *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.name" />
@@ -94,20 +94,59 @@
         <label class="label"><span class="label-text">Host *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.host" (ngModelChange)="smtpValidated = false" />
       </div>
+      <div class="md:col-span-2 rounded-box border border-base-300 p-4 bg-base-200/40 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <h4 class="font-semibold text-sm uppercase tracking-wide opacity-80">Connection</h4>
+          <label class="label cursor-pointer gap-2 p-0">
+            <span class="label-text text-xs">Use Secure Connection</span>
+            <input type="checkbox" class="toggle toggle-primary toggle-sm" [(ngModel)]="form.use_secure_connection"
+              (ngModelChange)="onSecureConnectionChange()" />
+          </label>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
         <label class="label"><span class="label-text">Port *</span></label>
         <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port"
           (ngModelChange)="smtpValidated = false" />
+        <div class="mt-2 flex gap-2 text-xs">
+          <button class="link link-primary" type="button" (click)="form.port = 25; smtpValidated = false">25</button>
+          <button class="link link-primary" type="button" (click)="form.port = 2525; smtpValidated = false">2525</button>
+          <button class="link link-primary" type="button" (click)="form.port = 465; smtpValidated = false">465</button>
+          <button class="link link-primary" type="button" (click)="form.port = 587; smtpValidated = false">587</button>
+        </div>
       </div>
       <div>
-        <label class="label"><span class="label-text">Username *</span></label>
-        <input class="input input-bordered w-full" [(ngModel)]="form.username"
-          (ngModelChange)="smtpValidated = false" />
+        <label class="label"><span class="label-text">Security Type</span></label>
+        <select class="select select-bordered w-full" [(ngModel)]="form.security_mode"
+          [disabled]="!form.use_secure_connection" (ngModelChange)="onSecurityModeChange()">
+          <option *ngFor="let option of securityModeOptions" [ngValue]="option.value" [hidden]="option.value === 'none'">
+            {{ option.label }}
+          </option>
+        </select>
       </div>
-      <div class="md:col-span-2">
-        <label class="label"><span class="label-text">Password *</span></label>
-        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password"
-          (ngModelChange)="smtpValidated = false" />
+      </div>
+      </div>
+      <div class="md:col-span-2 rounded-box border border-base-300 p-4 bg-base-200/40 space-y-4">
+      <h4 class="font-semibold text-sm uppercase tracking-wide opacity-80">Authentication</h4>
+      <label class="label cursor-pointer justify-between px-1">
+        <span class="label-text">Use Authentication</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" [(ngModel)]="form.use_authentication" />
+      </label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="label"><span class="label-text">Username *</span></label>
+          <input class="input input-bordered w-full" [(ngModel)]="form.username" [disabled]="!form.use_authentication"
+            (ngModelChange)="smtpValidated = false" />
+        </div>
+        <div>
+          <label class="label"><span class="label-text">Password *</span></label>
+          <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password"
+            [disabled]="!form.use_authentication" (ngModelChange)="smtpValidated = false" />
+        </div>
+      </div>
+      <div *ngIf="!form.use_authentication" class="alert alert-info alert-soft mt-2">
+        <span>Email test will be sent without SMTP auth.</span>
+      </div>
       </div>
       <div>
         <label class="label"><span class="label-text">From Name</span></label>
@@ -121,14 +160,19 @@
         <label class="label"><span class="label-text">Test Email *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.test_email" placeholder="you@domain.com" />
       </div>
-      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
-        <span class="label-text">Global SMTP server</span>
-        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
-      </label>
-      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
-        <span class="label-text">Active</span>
-        <input type="checkbox" class="toggle toggle-success" [(ngModel)]="form.is_active" />
-      </label>
+      <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 pt-1">
+        <label class="label cursor-pointer justify-start gap-2 px-1 py-1">
+          <input type="checkbox" class="toggle toggle-primary toggle-sm" [(ngModel)]="form.is_global" />
+          <span class="label-text">Global SMTP server</span>
+        </label>
+        <label class="label cursor-pointer justify-start gap-2 px-1 py-1">
+          <input type="checkbox" class="toggle toggle-success toggle-sm" [(ngModel)]="form.is_active" />
+          <span class="label-text">Active</span>
+        </label>
+      </div>
+      <div *ngIf="!form.use_secure_connection && form.use_authentication" class="md:col-span-2 alert alert-warning alert-soft">
+        <span>Insecure mode enabled: the app will try AUTH LOGIN without TLS if server supports it.</span>
+      </div>
     </div>
 
     <div class="modal-action">
@@ -147,7 +191,7 @@
   <div class="modal-box max-w-3xl">
     <h3 class="font-bold text-lg mb-4">Edit SMTP Server</h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="label"><span class="label-text">Name *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.name" />
@@ -156,20 +200,59 @@
         <label class="label"><span class="label-text">Host *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.host" (ngModelChange)="smtpValidated = false" />
       </div>
+      <div class="md:col-span-2 rounded-box border border-base-300 p-4 bg-base-200/40 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <h4 class="font-semibold text-sm uppercase tracking-wide opacity-80">Connection</h4>
+          <label class="label cursor-pointer gap-2 p-0">
+            <span class="label-text text-xs">Use Secure Connection</span>
+            <input type="checkbox" class="toggle toggle-primary toggle-sm" [(ngModel)]="form.use_secure_connection"
+              (ngModelChange)="onSecureConnectionChange()" />
+          </label>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
         <label class="label"><span class="label-text">Port *</span></label>
         <input type="number" class="input input-bordered w-full" [(ngModel)]="form.port"
           (ngModelChange)="smtpValidated = false" />
+        <div class="mt-2 flex gap-2 text-xs">
+          <button class="link link-primary" type="button" (click)="form.port = 25; smtpValidated = false">25</button>
+          <button class="link link-primary" type="button" (click)="form.port = 2525; smtpValidated = false">2525</button>
+          <button class="link link-primary" type="button" (click)="form.port = 465; smtpValidated = false">465</button>
+          <button class="link link-primary" type="button" (click)="form.port = 587; smtpValidated = false">587</button>
+        </div>
       </div>
       <div>
-        <label class="label"><span class="label-text">Username *</span></label>
-        <input class="input input-bordered w-full" [(ngModel)]="form.username"
-          (ngModelChange)="smtpValidated = false" />
+        <label class="label"><span class="label-text">Security Type</span></label>
+        <select class="select select-bordered w-full" [(ngModel)]="form.security_mode"
+          [disabled]="!form.use_secure_connection" (ngModelChange)="onSecurityModeChange()">
+          <option *ngFor="let option of securityModeOptions" [ngValue]="option.value" [hidden]="option.value === 'none'">
+            {{ option.label }}
+          </option>
+        </select>
       </div>
-      <div class="md:col-span-2">
-        <label class="label"><span class="label-text">Password (leave empty to keep current)</span></label>
-        <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password"
-          (ngModelChange)="smtpValidated = false" />
+      </div>
+      </div>
+      <div class="md:col-span-2 rounded-box border border-base-300 p-4 bg-base-200/40 space-y-4">
+      <h4 class="font-semibold text-sm uppercase tracking-wide opacity-80">Authentication</h4>
+      <label class="label cursor-pointer justify-between px-1">
+        <span class="label-text">Use Authentication</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" [(ngModel)]="form.use_authentication" />
+      </label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="label"><span class="label-text">Username *</span></label>
+          <input class="input input-bordered w-full" [(ngModel)]="form.username" [disabled]="!form.use_authentication"
+            (ngModelChange)="smtpValidated = false" />
+        </div>
+        <div>
+          <label class="label"><span class="label-text">Password (leave empty to keep current)</span></label>
+          <input type="password" class="input input-bordered w-full" [(ngModel)]="form.password"
+            [disabled]="!form.use_authentication" (ngModelChange)="smtpValidated = false" />
+        </div>
+      </div>
+      <div *ngIf="!form.use_authentication" class="alert alert-info alert-soft mt-2">
+        <span>Email test will be sent without SMTP auth.</span>
+      </div>
       </div>
       <div>
         <label class="label"><span class="label-text">From Name</span></label>
@@ -183,14 +266,19 @@
         <label class="label"><span class="label-text">Test Email *</span></label>
         <input class="input input-bordered w-full" [(ngModel)]="form.test_email" placeholder="you@domain.com" />
       </div>
-      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
-        <span class="label-text">Global SMTP server</span>
-        <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="form.is_global" />
-      </label>
-      <label class="label cursor-pointer justify-between md:col-span-2 p-2 border border-base-300 rounded-box">
-        <span class="label-text">Active</span>
-        <input type="checkbox" class="toggle toggle-success" [(ngModel)]="form.is_active" />
-      </label>
+      <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 pt-1">
+        <label class="label cursor-pointer justify-start gap-2 px-1 py-1">
+          <input type="checkbox" class="toggle toggle-primary toggle-sm" [(ngModel)]="form.is_global" />
+          <span class="label-text">Global SMTP server</span>
+        </label>
+        <label class="label cursor-pointer justify-start gap-2 px-1 py-1">
+          <input type="checkbox" class="toggle toggle-success toggle-sm" [(ngModel)]="form.is_active" />
+          <span class="label-text">Active</span>
+        </label>
+      </div>
+      <div *ngIf="!form.use_secure_connection && form.use_authentication" class="md:col-span-2 alert alert-warning alert-soft">
+        <span>Insecure mode enabled: the app will try AUTH LOGIN without TLS if server supports it.</span>
+      </div>
     </div>
 
     <div class="modal-action">

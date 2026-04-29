@@ -54,7 +54,7 @@ func PrintBanner() {
 		"",
 		appBuild,
 		" by: " + tui.Color("@mh4x0f", color.FgHiYellow, color.Bold) +
-			" • PocL4bs Team - " + tui.Color("10 Years Anniversary", color.FgHiMagenta, color.Bold),
+			" • PocL4bs Team - " + tui.Color("10 Years", color.FgHiMagenta, color.Bold),
 		"",
 	}
 

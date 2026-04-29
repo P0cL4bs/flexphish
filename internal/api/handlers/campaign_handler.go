@@ -814,6 +814,7 @@ func (h *CampaignHandler) sendCampaignEmailsInBackground(campaignID int64, userI
 		sendErr := sendSMTPMessage(
 			profile.Host,
 			profile.Port,
+			profile.SecurityMode,
 			profile.Username,
 			profile.Password,
 			fromEmail,

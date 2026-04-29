@@ -1,3 +1,5 @@
+export type SMTPSecurityMode = 'starttls' | 'implicit_tls' | 'none'
+
 export interface SMTPProfile {
   id: number
   user_id?: number
@@ -5,6 +7,7 @@ export interface SMTPProfile {
   name: string
   host: string
   port: number
+  security_mode: SMTPSecurityMode
   username: string
   from_name?: string
   from_email?: string
@@ -18,6 +21,7 @@ export interface SMTPProfilePayload {
   is_global: boolean
   host: string
   port: number
+  security_mode: SMTPSecurityMode
   username: string
   password: string
   from_name?: string
@@ -26,9 +30,12 @@ export interface SMTPProfilePayload {
 }
 
 export interface SMTPTestPayload {
+  smtp_profile_id?: number
   name: string
   host: string
   port: number
+  security_mode: SMTPSecurityMode
+  use_authentication?: boolean
   username: string
   password: string
   from_name?: string
