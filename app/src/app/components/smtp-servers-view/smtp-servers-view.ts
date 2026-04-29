@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { SMTPProfile, SMTPProfilePayload, SMTPTestPayload } from 'src/app/models/smtp.model'
+import { SMTPProfile, SMTPProfilePayload, SMTPSecurityMode, SMTPTestPayload } from 'src/app/models/smtp.model'
 import { ApiService } from 'src/app/services/api.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { LucideAngularModule } from "lucide-angular";
@@ -11,12 +11,15 @@ type SMTPForm = {
   is_global: boolean
   host: string
   port: number | null
+  security_mode: SMTPSecurityMode
   username: string
   password: string
   from_name: string
   from_email: string
   test_email: string
   is_active: boolean
+  use_secure_connection: boolean
+  use_authentication: boolean
 }
 
 @Component({
@@ -27,6 +30,12 @@ type SMTPForm = {
   styleUrl: './smtp-servers-view.css'
 })
 export class SMTPServersView implements OnInit {
+  readonly securityModeOptions: { value: SMTPSecurityMode; label: string }[] = [
+    { value: 'starttls', label: 'STARTTLS (Recommended)' },
+    { value: 'implicit_tls', label: 'SSL/TLS (Legacy)' },
+    { value: 'none', label: 'None (Not secure)' }
+  ]
+
   profiles: SMTPProfile[] = []
   filteredProfiles: SMTPProfile[] = []
   search = ''
@@ -100,12 +109,15 @@ export class SMTPServersView implements OnInit {
       is_global: !!profile.is_global,
       host: profile.host || '',
       port: profile.port || null,
+      security_mode: profile.security_mode || 'starttls',
       username: profile.username || '',
       password: '',
       from_name: profile.from_name || '',
       from_email: profile.from_email || '',
       test_email: '',
-      is_active: !!profile.is_active
+      is_active: !!profile.is_active,
+      use_secure_connection: profile.security_mode !== 'none',
+      use_authentication: true
     }
     this.smtpValidated = false
     this.editDialog?.nativeElement.showModal()
@@ -193,12 +205,15 @@ export class SMTPServersView implements OnInit {
       is_global: false,
       host: '',
       port: 587,
+      security_mode: 'starttls',
       username: '',
       password: '',
       from_name: '',
       from_email: '',
       test_email: '',
-      is_active: true
+      is_active: true,
+      use_secure_connection: true,
+      use_authentication: true
     }
   }
 
@@ -210,6 +225,7 @@ export class SMTPServersView implements OnInit {
     const from_name = (this.form.from_name || '').trim()
     const from_email = (this.form.from_email || '').trim()
     const port = Number(this.form.port)
+    const security_mode = this.form.security_mode || 'starttls'
 
     if (!name || !host || !username || !Number.isFinite(port) || port <= 0) {
       this.toast.show('Please fill required fields: name, host, port and username', 'warning')
@@ -221,6 +237,7 @@ export class SMTPServersView implements OnInit {
       is_global: !!this.form.is_global,
       host,
       port,
+      security_mode,
       username,
       password,
       from_name,
@@ -237,18 +254,29 @@ export class SMTPServersView implements OnInit {
     const from_email = (this.form.from_email || '').trim()
     const test_email = (this.form.test_email || '').trim()
     const port = Number(this.form.port)
+    const security_mode = this.form.use_secure_connection ? (this.form.security_mode || 'starttls') : 'none'
 
-    if (!host || !username || !password || !test_email || !Number.isFinite(port) || port <= 0) {
-      this.toast.show('Fill host, port, username, password and test email', 'warning')
+    const isEditing = !!this.editingProfile
+    const authEnabled = !!this.form.use_authentication
+    const passwordRequired = authEnabled && !isEditing
+    if (!host || !test_email || !Number.isFinite(port) || port <= 0) {
+      this.toast.show('Fill host, port and test email', 'warning')
+      return
+    }
+    if (authEnabled && (!username || (passwordRequired && !password))) {
+      this.toast.show('Fill username and password when authentication is enabled', 'warning')
       return
     }
 
     const payload: SMTPTestPayload = {
+      smtp_profile_id: this.editingProfile?.id,
       name: (this.form.name || '').trim(),
       host,
       port,
-      username,
-      password,
+      security_mode,
+      use_authentication: authEnabled,
+      username: authEnabled ? username : '',
+      password: authEnabled ? password : '',
       from_name,
       from_email,
       test_email
@@ -268,6 +296,42 @@ export class SMTPServersView implements OnInit {
         this.toast.show(this.extractError(err, 'SMTP test failed'), 'error')
       }
     })
+  }
+
+  onSecurityModeChange(): void {
+    this.smtpValidated = false
+    if (this.form.security_mode === 'none') {
+      this.form.use_secure_connection = false
+    }
+    if (!this.form.port || this.form.port <= 0) {
+      this.form.port = this.suggestedPortForMode(this.form.security_mode)
+    }
+  }
+
+  onSecureConnectionChange(): void {
+    this.smtpValidated = false
+    if (!this.form.use_secure_connection) {
+      this.form.security_mode = 'none'
+      this.form.port = 25
+      return
+    }
+
+    if (this.form.security_mode === 'none') {
+      this.form.security_mode = 'starttls'
+    }
+    this.form.port = this.suggestedPortForMode(this.form.security_mode)
+  }
+
+  suggestedPortForMode(mode: SMTPSecurityMode): number {
+    switch (mode) {
+      case 'implicit_tls':
+        return 465
+      case 'none':
+        return 25
+      case 'starttls':
+      default:
+        return 587
+    }
   }
 
   private extractError(err: any, fallback: string): string {

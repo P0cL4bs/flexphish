@@ -2,6 +2,12 @@ package smtp
 
 import "time"
 
+const (
+	SecurityModeStartTLS    = "starttls"
+	SecurityModeImplicitTLS = "implicit_tls"
+	SecurityModeNone        = "none"
+)
+
 type SMTPProfile struct {
 	Id int64 `gorm:"primaryKey" json:"id"`
 
@@ -10,8 +16,9 @@ type SMTPProfile struct {
 
 	Name string `gorm:"not null" json:"name"`
 
-	Host string `gorm:"not null" json:"host"`
-	Port int    `gorm:"not null" json:"port"`
+	Host         string `gorm:"not null" json:"host"`
+	Port         int    `gorm:"not null" json:"port"`
+	SecurityMode string `gorm:"not null;default:starttls" json:"security_mode"`
 
 	Username string `gorm:"not null" json:"username"`
 
